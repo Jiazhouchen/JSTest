@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>My experiment</title>
+    <script src="https://unpkg.com/jspsych@7.3.2"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.1.2"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-image-keyboard-response@1.1.2"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-instructions@1.1.2"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-preload@1.1.2"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-auth.js"></script>
+    <script src="js/GeneralUtility.js"></script>
+    <script src="js/EmoGamblingTrial.js"></script>
+    <script src="js/RateEmotionTrial.js"></script>
+    <script src="js/gen_conditions.js"></script>
+    <script src="js/plugin-EmoGamblingTask.js"></script>
+    <script src="js/plugin-RateEmotion.js"></script>
+    <script src="js/firebase.js"></script>
+    <link href="https://unpkg.com/jspsych@7.3.2/css/jspsych.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body></body>
+  <script>
+
+
+
+
+    /* set up some defaults for contingency generation */
+    let num_trial = 10;    /* total number of trials */
+    let fuzz_match = false; /* matching set to true would allow for fuzzy match, ie 1.4 = 1, 1.5 = 2 */
+    let choice_type = ['equal']; /* options are equal, better, worse or fixed (to gamble), to set fixed value use ct_fixed*/
+    let win_prob = [60] /* list of wining probabilities */
+    let emo_int = 1; /*options to set the interval of emotion labeling */
+    let no_loss = true; /* do we want to get loss involve or nah */
+    let yoke_por = 0.2; /* what per of t is yoked */
+    let left_p = 0.5; /* what per of t is left */
+    let diff_wall = null; /* wall the expected value to safe option difference (avoid 8, -8) */
+    let ct_fixed = 0; /* if choice type contains 'fixed', what is the fixed value' */
+    let dt_collection = 'test' /* which collection should the data be sent to */
+    let participant_id = 'NOID_'+Math.round(Math.random()*10000000) /* fake id to start, assgin later if available */
+    let session_id = 'NO SESSION INFO' /* default session info */
+    let version_control = 'b1a' /* what version is this */
+    let emo_cat = 'GoEmo' /* what types of emotion rating should we use? */
+    /* get the parameters */
+    let params = new URLSearchParams(location.search);
+
+    /* replace default if there's value */
+    participant_id = get_params(params, 'participant_id',participant_id);
+    session_id = get_params(params, 'session_id',session_id);
+    version_control = get_params(params, 'vc',version_control)
+    emo_cat = get_params(params, 'emo_cat',emo_cat)
+    dt_collection = get_params(params, 'dtc',dt_collection)
+    diff_wall = get_params(params, 'diff_wall',diff_wall)
+    ct_fixed = get_params(params, 'ct_fixed',ct_fixed)
+    yoke_por = get_params(params, 'yp',yoke_por)
+    num_trial = get_params(params, 'num_trial',num_trial)
+    choice_type = get_params(params, 'ct[]',choice_type)
+    win_prob = get_params(params, 'wp[]',win_prob)
+    fuzz_match = get_params(params, 'fuzz',fuzz_match)
+    no_loss = get_params(params, 'no_loss',no_loss)
+    window.accumulative_earning = 0;
+    let timeout = 1000000;
+    /* generate task conditions here */
+    let p_c = [];
+    for (let ctx in choice_type) {
+      for (let wpx in win_prob) {
+        p_c.push([choice_type[ctx],win_prob[wpx]])
+      }
+    }
+    console.log(p_c)
+    t = Math.round(num_trial / p_c.length)
+    let all_info = [];
+    let all_timeline = [];
+    for (let az in p_c) {
+      let [ar_dict, full_range]  = get_gam_dict(p_c[az][1],fuzz_match,no_loss)
+      console.log(ar_dict)
+      let [winX, maxP] = frac_hack(p_c[az][1])
+      let tr = gen_trial_contin(t, (winX/maxP), yoke_por, left_p, ar_dict, full_range,
+              diff_wall,p_c[az][0],emo_int,fixed_iti.bind(null,1500,t))
+      tr.info.win_p = (winX/maxP)
+      tr.info.yoke_p = yoke_por
+      tr.choice_type = p_c[az][0]
+      tr.emo_int = emo_int
+      all_info.push(tr.info)
+      all_timeline.push(tr.timeline)
+    }
+    all_timeline = flatten_array(all_timeline)
+    console.log(all_info)
+    console.log(all_timeline)
+
+    get_config(window);
+    /* make a promise for uid, or don't run till it's set */
+    function ensure_uid_set(timeout) {
+      var start = performance.now()
+      return new Promise(wait_for_uid);
+
+      function wait_for_uid(resolve, reject) {
+        if (uid) {
+          resolve(uid);
+        } else if (timeout && (performance.now() - start) >= timeout) {
+          reject(new Error("Timeout while getting firebase uid"));
+        } else {
+          setTimeout(wait_for_uid.bind(this, resolve, reject), 30);
+        }
+
+      }
+    }
+
+
+    console.log('Start loading jsPsych')
+    /* db.collection("test").doc(uid).set(part_info) */
+    let dt;
+    /* initialize jsPsych */
+    let jsPsych = initJsPsych({
+      on_data_update: function () {
+        dt = jsPsych.data.get().last(1).values()[0]
+        console.log('Data has updated')
+        console.log(dt)
+        let t_i = dt.trial_index.toString()
+        db.collection(dt_collection).doc(uid).collection('trials').doc(t_i).set(dt)
+      },
+      exclusions: {min_width: 1152,min_height: 648, audio: true}, /* need at least 720p display */
+      override_safe_mode: true
+    });
+
+    /* create timeline */
+    let timeline = [];
+    let canvas_dimensions = [0,0];
+    /* const win_size1 = [window.innerWidth, window.innerHeight];  use the below method for more accurate win size*/
+    const win_size = [document.documentElement.clientWidth, document.documentElement.clientHeight];
+    console.log(win_size)
+    /* scale the 16:9 res with 0.8 to capture the 3:4 (macbooks) & 21:9 ones (long displays) but fix canvas at 16:9 */
+    if (win_size[0] > 3072 && win_size[1] > 1728) {
+      console.log('~4K, use 3072*1728')
+      canvas_dimensions = [3072,1728]
+    } else if (win_size[0] > 2048 && win_size[1] > 1152) {
+      console.log('~1440p, use 2048*1152')
+      canvas_dimensions = [2048,1152]
+    } else if (win_size[0] > 1536 && win_size[1] > 864) {
+      console.log('~1080p, use 1536*864')
+      canvas_dimensions = [1536,864]
+    } else {
+      console.log('lower than 1080p, use 1152*648')
+      canvas_dimensions = [1152,648]
+    }
+
+    let instruction = {
+      type: jsPsychInstructions,
+      pages: [
+        `<strong>Welcome to the experiment </strong> <br> <br>
+         This is currently in demo mode. <br> <br>
+         This page will be removed piror to data collection <br><br>
+         You can use the url parameters to control what conditions to generate.<br> <br>
+         To use these, change the url by appending a ? followed by parameters=value like this: url?par=value <br>
+         You can use multiple ones by using & sign: 'url?par1=value1&par2=value2'<br>
+         Some Key Parameters are: <br>
+         <strong>num_trial</strong>: sets the number of trials (e.g. url?num_trial=50) <br>
+         <strong>ct[]</strong>: what types of trials to use: equal, better, worse (relative to gambling), use multiple ones: url?ct[]=equal&ct[]=better <br>
+         <strong>emo_cat</strong>: what emotion labels to use, options are GoEmo, Ekman, Sentiment <br>
+         <strong>yp</strong>: yoke percentage, how many trials should have yoked choices <br>
+         <strong>no_loss</strong>: remove the possibility of all potiential loss options <br>
+         <strong>wp[]</strong>: gambling win probability, this will be convolved with ct[], to generate all possible pairs, you can similarly use multiple: url?wp[]=0.2&wp[]=0.5
+         win_prob = get_params(params, 'wp[]',win_prob) <br> <br>
+         There are more options available, to see the full list, inspect this page and look for lines 48-60.
+         <br> <br> <br>`,
+        `In this task, you will be repeatedly asked to make a decision.<br><br>
+         Your choices are always to gamble or to be safe. <br><br>
+         In each trial, you will see one option on the left and one options on the right. <br><br>
+         The safe option will be the side where there is only ONE possible outcome. <br>
+         While the gamble option will have TWO possible outcomes stacked vertically together. <br><br>
+         The chance of wining a gamble will remain the same until a certain number of decisions are made. <br>
+         You will not be notified when the winning probability has changed.<br><br>
+         <strong>You will use the F and J keys on your keyboard to select options on the left and right respectively.</strong><br>
+         This mapping will not change regardless of where the safe or gamble option is.<br><br>
+         You will see a feedback after your response. If you gambled, you will know whether you win or loss. <br>
+         If you choose the safe option, you will always get the points as indicated.<br><br>
+         For each trial, you will have ${5000/1000} seconds to make a response.
+         <br><br><br>`,
+        `In some trials, your choice will not matter. <br>
+         If you are in one of these trials, the selection box will start moving after you make your response. <br>
+         In those trials, you will still learn what the outcome is and get the points as shown. <br><br><br>
+         At the end of some trials, we will ask you to select what emotion(s) do you feel at the moment. <br>
+         Please select all that apply. You will have ${10000 / 1000} seconds to make a response.
+         <br><br><br>`,
+        `That's the end of the instructions. Before we start. We want to know what emotions are you feeling currently. <br>
+         Please select all that apply.<br><br><br>
+         When you are ready, press the continue button below. The experiment will start and cannot be paused. <br>
+         <br><br><br>`
+      ],
+      button_label_next: "Continue",
+      button_label_previous: "Back",
+      show_clickable_nav: true,
+      show_page_number: true
+    }
+    timeline.push(instruction)
+
+    let baseline_emo = {
+      type: jsPsychRateEmotion,
+      emotion: emo_cat,
+      alerttype: "inpage",
+    }
+    timeline.push(baseline_emo)
+
+    let EmoGam_page_timeline = {
+      type: jsPsychEmoGambling,
+      canvas_dimensions: canvas_dimensions,
+      emotion: emo_cat,
+      alerttype: 'inpage',
+      color_options: {
+        'background': '#fafafa',
+        'gambling': '#e8e1cc',
+        'safe':      '#e8e1cc',
+        'cross': '#080808',
+        'font': '#080808',
+        'selected': '#edddbb',
+        'confirmed': '#f2a407',
+      },
+      allowed_keys: ['f','j'],
+      max_dur: 5000,
+      emo_max_dur: 10000,
+      timeline: all_timeline,
+    }
+    timeline.push(EmoGam_page_timeline)
+    let ending = {
+      type: jsPsychInstructions,
+      pages: [`Thank you for your participation! <br> <br> You will now be redirected to ${'Prolific'}.`],
+    }
+    timeline.push(ending)
+    /* start the experiment */
+    /* but also like wait for firebase id */
+    let current_date = new Date();
+    ensure_uid_set(timeout).then(async function (){
+      let part_info = {'participant': participant_id, 'session': session_id, 'version': version_control, 'uid': uid,
+        'device_info': window.device_info,'date':current_date.toDateString(), 'time':current_date.toTimeString(),
+        'contingency_info': all_info,
+        'TZ_offset': current_date.getTimezoneOffset(),'currenttime_ms': performance.now(),'piror_part':[]}
+      console.log(part_info)
+      let existing_doc = await db.collection(dt_collection).doc(uid).get()
+      if (existing_doc.data()) {
+        console.log('has old data')
+        part_info.piror_part=existing_doc.data().piror_part
+        let existing_trial = await db.collection(dt_collection).doc(uid).collection('trials').get()
+        let dtz = []
+        if (existing_trial.docs) {
+          for (let i in existing_trial.docs) {
+            dtz.push(existing_trial.docs[i].data())
+          }
+        }
+        p_info = existing_doc.data().participant+'@'+existing_doc.data().version
+                +' '+ existing_doc.data().date+' '+existing_doc.data().time
+        part_info.piror_part.push({'IdDateTime': p_info,'trials': dtz})
+      }
+      db.collection(dt_collection).doc(uid).set(part_info)
+      jsPsych.run(timeline);
+    })
+
+
+  </script>
+</html>

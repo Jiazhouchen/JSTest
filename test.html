@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Test</title>
+  <script src="js/jsPsych/jspsych.js"></script>
+  <script src="js/jsPsych/plugin-preload.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-auth.js"></script>
+  <script src="js/GeneralUtility.js"></script>
+  <script src="js/EmoGamblingTrial.js"></script>
+  <script src="js/RateEmotionTrial.js"></script>
+  <script src="js/gen_conditions.js"></script>
+  <script src="js/plugin-EmoGamblingTask.js"></script>
+  <script src="js/plugin-RateEmotion.js"></script>
+  <script src="js/plugin-Gamble.js"></script>
+  <script src="js/GambleTrial.js"></script>
+  <link href="js/jsPsych/jspsych.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+</body>
+<script>
+  let timeline = [];
+  let jsPsych = initJsPsych({
+    on_data_update: function () {
+      dt = jsPsych.data.get().last(1).values()[0]
+      console.log('Data has updated')
+      console.log(dt)
+    },
+    exclusions: {min_width: 0,min_height: 0, audio: true}, /* need at least 720p display  exclusions: {min_width: 1152,min_height: 648, audio: true}*/
+    override_safe_mode: true
+  });
+  let test_plugin = {
+    type: jsPsychGamble,
+    rank: false,
+    which_side: 'left',
+    switch: true,
+    win: 'lose',
+  }
+  let baseline_emo = {
+    type: jsPsychRateEmotion,
+    emotion: 'GoEmo',
+    alerttype: "inpage",
+  }
+  timeline.push(test_plugin)
+  timeline.push(baseline_emo)
+  timeline.push(test_plugin)
+  jsPsych.run(timeline);
+</script>
+</html>

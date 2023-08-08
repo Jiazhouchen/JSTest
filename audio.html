@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Moth Stories</title>
+    <script>
+        function onstart() {
+            let code = prompt("Enter a code to store/restore your progress: YOU MUST PROVIDE ONE, IF YOU DON'T HAVE ONE PREVIOUSLY, JUST MAKE ONE UP!")
+            return code
+        }
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-auth.js"></script>
+    <script src="js/GeneralUtility.js"></script>
+    <script src="js/firebase.js"></script>
+</head>
+<style>
+    h1,h2,h3 {text-align: center;}
+    html {padding: 50px;}
+    body {
+        text-align: center;
+    }
+    p {
+        font-size: 20px;
+    }
+    button {
+        background-color: #F0F0F0;
+        min-width: 180px;
+        min-height: 60px;
+        padding: 8px 12px 8px 12px;
+        color: black;
+        font-size: 20px;
+        font-weight:bold;
+        margin-inline: 20px;
+        margin: 20px 20px 20px 20px;
+        border-color: #465878;
+        border-radius: 10px;
+    }
+    button:hover {
+        filter: brightness(90%);
+        color: #465878;
+        -webkit-filter: brightness(90%);
+    }
+</style>
+<body>
+<section id="init_sect">
+<h1> Welcome </h1>
+<h2> This is the section where you can sample the Moth Stories and give ratings.</h2>
+</section>
+<button id='all' >All Stories</button>
+<button id='selected' >Selected Stories</button>
+<script>
+    let code = onstart();
+    console.log(code)
+    let emotions = ['admiration','amusement','anger','annoyance','approval',
+        'caring','confusion','curiosity','desire','disappointment',
+        'disapproval','disgust', 'embarrassment','excitement','fear',
+        'gratitude','grief','joy','love','nervousness',
+        'optimism','pride','realization','relief','remorse',
+        'sadness','surprise', 'neutral'];
+    let stories;
+    let cur_story;
+    let firedata;
+    function ensure_uid_set(timeout) {
+        let start = performance.now()
+        return new Promise(wait_for_uid);
+
+        function wait_for_uid(resolve, reject) {
+            if (uid) {
+                resolve(uid);
+            } else if (timeout && (performance.now() - start) >= timeout) {
+                reject(new alert("Timeout while getting firebase uid"));
+            } else {
+                setTimeout(wait_for_uid.bind(this, resolve, reject), 30);
+            }
+
+        }
+    }
+    ensure_uid_set(9000).then(async function (){
+        let existing_doc = await db.collection('MothStories').doc(code).get()
+        if (existing_doc.data()) {
+            console.log("has existing data")
+            console.log(existing_doc.data())
+            firedata = existing_doc.data();
+        } else {
+            console.log("no existing data")
+        }
+        document.getElementById('all').onclick= set_up_pages;
+        document.getElementById('all').style.display = 'inline';
+        document.getElementById('selected').onclick= set_up_pages;
+        document.getElementById('selected').style.display = 'inline';
+    });
+    function set_up_pages(e) {
+        console.log(e)
+        if (e.target.id==='all') {
+            stories = ['adollshouse','adventuresinsayingyes','alternateithicatom',
+                'avatar','buck','exorcism','eyespy',
+                'fromboyhoodtofatherhood','hangtime','haveyoumethimyet',
+                'howtodraw','inamoment','itsabox','legacy','life',
+                'myfirstdaywiththeyankees','naked','odetostepfather',
+                'sloth','souls','stagefright','swimmingwithastronauts',
+                'thatthingonmyarm','theclosetthatateeverything','tildeath',
+                'undertheinfluence','wheretheressmoke'];
+        } else {
+            stories = ['adollshouse','adventuresinsayingyes', 'buck',
+                'itsabox','hangtime','haveyoumethimyet',
+                'souls','theclosetthatateeverything','wheretheressmoke'];
+        }
+
+        if (firedata) {
+            console.log('to do: fix the smaller -> larger')
+            if (stories.length !== Object.keys(firedata.audio).length) {
+                stories.forEach(ss => {
+                    if(!firedata.audio[ss]) {
+                        firedata.audio[ss] = 0
+                        firedata.emo[ss] = {};
+                        emotions.forEach(emo => {
+                            firedata.emo[ss][emo] = 0
+                        })
+                    }
+                })
+            }
+        } else {
+            let dt_audio = {};
+            let dt_emo = {};
+            stories.forEach(ss => {
+                dt_audio[ss] = 0
+                dt_emo[ss] = {};
+                emotions.forEach(emo => {
+                    dt_emo[ss][emo] = 0
+                })
+            })
+            firedata = {'audio':dt_audio,'emo':dt_emo}
+            console.log(firedata)
+        }
+
+        document.getElementById('selected').style.display = 'none';
+        document.getElementById('all').style.display = 'none';
+        const StoryButtons = document.createElement('section');
+        StoryButtons.id = 'StoryButtons'
+        const EmoButtons = document.createElement('section');
+        EmoButtons.id = 'EmoButtons'
+        const ss_text = document.createElement('h2')
+        ss_text.textContent = 'Colored button indicates that ratings have already been provided.'
+        StoryButtons.appendChild(ss_text)
+        stories.forEach(ss => {
+            const newButton = document.createElement('button');
+            newButton.textContent = ss;
+            newButton.id = `${ss}`;
+            newButton.style.margin = '20px 20px 20px 20px';
+            newButton.onclick = story_onclick;
+            if (Object.values(firedata.emo[ss]).reduce((sum,num) => sum+num)>0) {
+                newButton.style.backgroundColor = '#b2c797';
+            }
+            StoryButtons.appendChild(newButton)
+        })
+        const emo_text = document.createElement('h1')
+        emo_text.textContent = 'Please provide your impression on the story you just listened to'
+        EmoButtons.appendChild(emo_text);
+        emotions.forEach(emo => {
+            const emoButton = document.createElement('button');
+            emoButton.textContent = emo;
+            emoButton.id = `${emo}`;
+            emoButton.style.margin = '20px 20px 20px 20px';
+            emoButton.onclick = emo_onclick;
+            EmoButtons.appendChild(emoButton)
+        })
+
+        const SubmitButton = document.createElement('button');
+        SubmitButton.textContent = 'Submit';
+        SubmitButton.id = 'Submit';
+        SubmitButton.style.margin = '20px 20px 20px 20px';
+        SubmitButton.style.backgroundColor = '#72a3b0'
+        SubmitButton.onclick = emo_submit;
+        const linebreak = document.createElement('p');
+        linebreak.textContent = '\n'
+        EmoButtons.appendChild(linebreak)
+        EmoButtons.appendChild(SubmitButton)
+
+
+        EmoButtons.style.display = 'none';
+        document.body.append(StoryButtons)
+        document.body.append(EmoButtons)
+
+        return true
+    }
+    function story_onclick(e){
+        let cs = e.target.id
+        cur_story = cs;
+        document.getElementById('StoryButtons').style.display = 'none';
+        draw_cur_story(cs)
+    }
+
+    function draw_cur_story(cs) {
+        let cur_sect = document.getElementById(`section-${cs}`)
+
+        if (cur_sect) {
+            if (Object.values(firedata.emo[cs]).reduce((sum,num) => sum+num)>0) {
+                document.getElementById('RateButton').style.backgroundColor = '#b2c797';
+            } else {
+                document.getElementById('RateButton').style.backgroundColor = '#F0F0F0';
+            }
+            cur_sect.style.display='inline';
+        } else {
+            const section = document.createElement('section');
+            section.id = `section-${cs}`
+            const figure = document.createElement('figure');
+            const figcap = document.createElement('figcaption')
+            const audio = document.createElement("audio");
+            figure.id = `figure-${cs}`
+            figcap.textContent = `Listen to ${cs}`;
+            figcap.style.fontSize = '30px';
+            audio.id = `audio-${cs}`
+            audio.controls = true;
+            audio.src = `/audio/${cs}.wav`;
+            audio.textContent = 'Download Audio'
+            audio.currentTime = firedata.audio[cur_story];
+            figure.appendChild(figcap)
+            figure.appendChild(audio)
+            const HomeButton = document.createElement('button');
+            const RateButton = document.createElement('button');
+            const SaveButton = document.createElement('button');
+            const text = document.createElement('p');
+            text.textContent = 'Whenever you are done, use the buttons below to Save / Move on / Provide Emotion Impressions. Save will capture your audio progress as well'
+            text.style.fontSize = '25px';
+            SaveButton.textContent = 'Save';
+            SaveButton.id = 'SaveButton';
+            SaveButton.onclick = save_state;
+            HomeButton.textContent = 'Other Stories';
+            HomeButton.id = 'HomeButton';
+            HomeButton.onclick = redraw_all_stories;
+            RateButton.textContent = 'Emotion Impressions';
+            RateButton.id = 'RateButton';
+            RateButton.onclick = rate_emo;
+            if (Object.values(firedata.emo[cs]).reduce((sum,num) => sum+num)>0) {
+                RateButton.style.backgroundColor = '#b2c797';
+            } else {
+                RateButton.style.backgroundColor = '#F0F0F0';
+            }
+            section.append(figure)
+            section.appendChild(text);
+            section.appendChild(SaveButton);
+            section.appendChild(HomeButton);
+            section.appendChild(RateButton);
+            document.body.append(section);
+        }
+
+    }
+
+    function redraw_all_stories() {
+        let cur_s_score = Object.values(firedata.emo[cur_story]).reduce((sum,num) => sum+num)
+        if (cur_s_score > 0) {
+            document.getElementById(cur_story).style.backgroundColor = '#b2c797';
+        }
+        document.getElementById(`section-${cur_story}`).style.display = 'none';
+        document.getElementById(`audio-${cur_story}`).pause();
+        document.getElementById('StoryButtons').style.display = 'inline'
+        document.getElementById('EmoButtons').style.display = 'none'
+        document.getElementById('init_sect').style.display = 'inline';
+
+    }
+
+    function rate_emo() {
+        console.log(cur_story)
+        document.getElementById('init_sect').style.display = 'none';
+        document.getElementById(`section-${cur_story}`).style.display = 'none';
+        console.log(firedata.emo[cur_story])
+        emotions.forEach(emx => {
+            if (firedata.emo[cur_story][emx]===1) {
+                document.getElementById(emx).style.background = '#f2a407';
+            } else {
+                document.getElementById(emx).style.background = '#F0F0F0';
+            }
+        })
+        document.getElementById('EmoButtons').style.display = 'inline';
+
+    }
+    function save_state(e) {
+        if (e && e.target.id==='SaveButton') {
+            document.getElementById(`audio-${cur_story}`).pause();
+        }
+        stories.forEach(ss => {
+            let audio = document.getElementById(`audio-${ss}`)
+            if (audio) {
+                firedata.audio[ss]=audio.currentTime
+            }
+        })
+        let db_status = db.collection('MothStories').doc(code).set(firedata)
+        db_status1.then(()=>{
+            console.log('DONE ONE')
+            let db_status2=db.collection(collname).doc(uid).update({
+                total_time_jspsych: jsPsych.getTotalTime(),
+                end_time_db: new Date().toLocaleTimeString(),
+                completed: 1,
+                terminatedEarly: 0,
+                saved_after_end: 1,
+            });
+            db_status2.then(()=>{
+                console.log('DONE TWO')
+                resolve();
+            })
+        })
+        console.log(db_status)
+    }
+    function emo_onclick(e) {
+        console.log(e.target.id)
+        let cemo = e.target.id
+        if (firedata.emo[cur_story][cemo]===1) {
+            document.getElementById(cemo).style.background = '#F0F0F0';
+            firedata.emo[cur_story][cemo]=0
+        } else {
+            document.getElementById(cemo).style.background = '#f2a407';
+            firedata.emo[cur_story][cemo]=1
+        }
+        console.log(firedata.emo[cur_story])
+    }
+    function emo_submit() {
+        save_state()
+        document.getElementById('EmoButtons').style.display = 'none'
+        document.getElementById('init_sect').style.display = 'inline'
+        draw_cur_story(cur_story)
+    }
+</script>
+</body>
+</html>

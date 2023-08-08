@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Math Section</title>
+</head>
+<style>
+    div {
+        border: 1px solid #73AD21;
+    }
+    div.wrap {
+        position: absolute;
+        top: 1vw;
+        left: 1vw;
+        width: 98vw;
+        height: 55vw;
+    }
+    div.helptext {
+        position: absolute;
+        top: 1%;
+        left: 10%;
+        width: 80%;
+        height: 15%;
+        padding: 1%;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 2vw;
+        text-align: center;
+        vertical-align: middle;
+        line-height: 200%;
+    }
+    div.equation {
+        -webkit-user-select: none; /* Safari */
+        -ms-user-select: none; /* IE 10 and IE 11 */
+        user-select: none; /* Standard syntax */
+        position: absolute;
+        top: 25%;
+        left: 10%;
+        width: 80%;
+        height: 30%;
+        padding: 1%;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 6vw;
+        text-align: center;
+        vertical-align: middle;
+        line-height: 0%;
+    }
+    div.buttonrow {
+        position: absolute;
+        top: 65%;
+        left: 10%;
+        width: 80%;
+        height: 25%;
+        padding: 1%;
+        font-family: Arial, Helvetica, sans-serif;
+
+    }
+    div.buttontext {
+        position: absolute;
+        top: 10vw;
+        left: 10vw;
+        width: 60vw;
+        height: 4vw;
+        text-align: center;
+        vertical-align: middle;
+        line-height: 0vw;
+    }
+    button.buttonrow {
+        background-color: #F0F0F0;
+        min-width: 15vw;
+        min-height: 6vw;
+        padding: 8px 12px 8px 12px;
+        color: black;
+        font-size: 3vw;
+        font-weight:bold;
+        border-style: none;
+        border-radius: 10px;
+    }
+    p.buttonrow {
+        font-size: 2vw;
+    }
+    div.fb {
+        -webkit-user-select: none; /* Safari */
+        -ms-user-select: none; /* IE 10 and IE 11 */
+        user-select: none; /* Standard syntax */
+        position: absolute;
+        top: 25%;
+        left: 20%;
+        width: 60%;
+        height: 30%;
+        padding: 1%;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 6vw;
+        text-align: center;
+        vertical-align: middle;
+        line-height: 0%;
+        border-radius: 20px;
+    }
+</style>
+<body>
+
+</body>
+<script>
+    let dt = {
+        init_time: performance.now(),
+        trial: {}
+    }
+    let thres_trial = 1
+    let cur_trial = 0
+    let cur_key
+    let [eq, cor, ra] = math_engine()
+    draw_question()
+
+    function math_engine() {
+        const a = Math.round(Math.random()*20)
+        const b = Math.round(Math.random()*20)
+        const opor = ['+','-','×']
+        const sel_op = opor[Math.floor(Math.random() * opor.length)];
+        let ra=0;
+        let out;
+        let eq;
+        if (sel_op === '+') {
+            ra = a+b
+        } else if (sel_op === '-') {
+            ra = a-b
+        } else if (sel_op === '×') {
+            ra = a*b
+        }
+
+        if (Math.random() > 0.5) {
+            out = true
+            eq = `${a} ${sel_op} ${b} = ${ra}`
+        } else {
+            out = false
+            eq = `${a} ${sel_op} ${b} = ${ra + Math.ceil(Math.random()*20) - Math.ceil(Math.random()*20)}`
+        }
+
+        return [eq, out]
+
+    }
+    function draw_question() {
+        const ex_wrap = document.getElementById('eqwrap')
+        if (ex_wrap)  {
+            document.getElementById('equ').textContent = eq
+            document.getElementById(`j-key`).style.backgroundColor = '#F0F0F0'
+            document.getElementById(`f-key`).style.backgroundColor = '#F0F0F0'
+            document.getElementById('eqwrap').style.display = 'inline'
+        } else {
+            const wrap = document.createElement('div')
+            const div0 = document.createElement('div')
+            const div1 = document.createElement('div')
+            const div2 = document.createElement('div')
+            const div20 = document.createElement('div')
+            const hx  = document.createElement('p')
+            const equ = document.createElement('h1')
+            const button0 = document.createElement('button')
+            const button1 = document.createElement('button')
+            const hx0  = document.createElement('p')
+            const hx1 = document.createElement('p')
+
+
+            wrap.id = 'eqwrap'
+            wrap.className = 'wrap'
+
+            div0.className = 'helptext'
+            hx.textContent = 'Please read the math equation below and decide if it\'s correct or wrong'
+            div0.id = 'div0'
+
+            div1.className = 'equation'
+            equ.textContent = eq
+            equ.id = 'equ'
+            div1.id = 'div1'
+
+            div2.className = 'buttonrow'
+            div2.id = 'div2'
+            div20.className = 'buttontext'
+
+            button0.className = 'buttonrow'
+            button0.textContent = 'Correct'
+            button0.id = 'f-key'
+            button0.style.position='absolute'
+            button0.style.top = '2vw'
+            button0.style.left = '15vw'
+
+            button1.className = 'buttonrow'
+            button1.textContent = 'Wrong'
+            button1.id = 'j-key'
+            button1.style.position='absolute'
+            button1.style.top = '2vw'
+            button1.style.left = '50vw'
+
+            hx0.textContent = 'Press F'
+            hx0.className = 'buttonrow'
+            hx0.style.position='absolute'
+            hx0.style.top = '0vw'
+            hx0.style.left = '9vw'
+
+            hx1.textContent = 'Press J'
+            hx1.className = 'buttonrow'
+            hx1.style.position='absolute'
+            hx1.style.top = '0vw'
+            hx1.style.left = '44vw'
+
+            div0.appendChild(hx)
+            div1.appendChild(equ)
+            div2.appendChild(button0)
+            div2.appendChild(button1)
+            div20.appendChild(hx0)
+            div20.appendChild(hx1)
+            div2.appendChild(div20)
+            wrap.appendChild(div0)
+            wrap.appendChild(div1)
+            wrap.appendChild(div2)
+            document.body.append(wrap)
+        }
+
+        document.addEventListener('keypress',after_keypress,true)
+
+    }
+    function after_keypress(e) {
+        e.preventDefault()
+        const key_id = e.key
+        const allowed_key = ['j','J','f','F']
+        if (allowed_key.includes(key_id)) {
+            document.removeEventListener('keypress',after_keypress,true)
+            document.getElementById(`${key_id}-key`).style.backgroundColor = '#eda532'
+        }
+        cur_key = key_id === 'f'
+        console.log(cur_key)
+        setTimeout(draw_feedback,500)
+    }
+
+    function draw_feedback() {
+        document.getElementById('eqwrap').style.display = 'none'
+        const ex_fb = document.getElementById('fbwrap')
+        if (!ex_fb) {
+            console.log('test')
+            const fbwrap = document.createElement('div')
+            fbwrap.id = 'fbwrap'
+            fbwrap.className = 'wrap'
+
+            const fb = document.createElement('div')
+            fb.id = 'fb'
+            fb.className = 'fb'
+
+            const fb_text = document.createElement('h1')
+            fb_text.textContent = 'True / False'
+            fb_text.id = 'fb-text'
+            fb.appendChild(fb_text)
+            fbwrap.appendChild(fb)
+            fbwrap.style.display = 'none'
+            document.body.append(fbwrap)
+        }
+
+        if (cur_key === cor) {
+            document.getElementById('fb').style.backgroundColor = '#ccdea6'
+            document.getElementById('fb-text').textContent = 'True!'
+        } else {
+            document.getElementById('fb').style.backgroundColor = '#cf9382'
+            document.getElementById('fb-text').textContent = 'False!'
+        }
+
+        document.getElementById('fbwrap').style.display = 'inline'
+
+        setTimeout(move_on,1000)
+    }
+
+    function move_on() {
+        document.getElementById('fbwrap').style.display = 'none'
+        cur_trial += 1
+        let ex1 = math_engine()
+        eq = ex1[0]
+        cor = ex1[1]
+        console.log(cur_trial)
+        if (cur_trial >= thres_trial) {
+            const wrapfin = document.createElement('div')
+            wrapfin.className = 'wrap'
+            const divfin = document.createElement('div')
+            const h1fin = document.createElement('h1')
+
+            divfin.style.lineHeight = '100%'
+            divfin.style.fontSize = '4vw'
+
+            h1fin.textContent = 'Thank you!'
+            divfin.className = 'fb'
+            divfin.style.opacity = '1'
+
+            divfin.appendChild(h1fin)
+            wrapfin.appendChild(divfin)
+            document.body.append(wrapfin)
+
+        } else {
+            draw_question()
+        }
+
+    }
+</script>
+</html>

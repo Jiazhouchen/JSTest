@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>4x4 Tic Tac Toe</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+    }
+    .board {
+      display: grid;
+      grid-template-columns: repeat(4, 100px);
+      gap: 2px;
+      margin-top: 20px;
+    }
+    .cell {
+      width: 100px;
+      height: 100px;
+      text-align: center;
+      vertical-align: middle;
+      font-size: 36px;
+      border: 1px solid #ccc;
+    }
+    .line {
+      height: 6px;
+      background-color: #f00;
+      position: absolute;
+      z-index: 1;
+      border-radius: 0;
+    }
+  </style>
+</head>
+<body>
+<h1>4x4 Tic Tac Toe</h1>
+<div class="board" id="board"></div>
+<script>
+  // Game Constants
+  const SIZE = 4;
+  const EMPTY = '';
+  const PLAYER_X = 'X';
+  const PLAYER_O = 'O';
+
+  // Game Variables
+  let board = [];
+  let currentPlayer = PLAYER_X;
+  let gameOver = false;
+
+  // Create the game board
+  function createBoard() {
+    const boardElement = document.getElementById('board');
+    for (let i = 0; i < SIZE; i++) {
+      board.push([]);
+      for (let j = 0; j < SIZE; j++) {
+        const cell = document.createElement('div');
+        cell.classList.add('cell');
+        cell.setAttribute('data-row', i);
+        cell.setAttribute('data-col', j);
+        cell.addEventListener('click', onCellClick);
+        boardElement.appendChild(cell);
+        board[i].push(EMPTY);
+      }
+    }
+  }
+
+  // Check if the player has won the game
+  function checkWin(row, col) {
+    const directions = [
+      [[-1, -1], [1, 1]], // Diagonal (left-top to right-bottom)
+      [[1, -1], [-1, 1]], // Diagonal (right-top to left-bottom)
+      [[0, -1], [0, 1]], // Horizontal
+      [[-1, 0], [1, 0]], // Vertical
+    ];
+
+    for (const direction of directions) {
+      const [start, end] = direction;
+      let count = 1;
+      let [dx, dy] = [start[0], start[1]];
+      let x = row + dx;
+      let y = col + dy;
+
+      while (x >= 0 && x < SIZE && y >= 0 && y < SIZE && board[x][y] === currentPlayer) {
+        count++;
+        [dx, dy] = [dx + start[0], dy + start[1]];
+        x = row + dx;
+        y = col + dy;
+      }
+
+      [dx, dy] = [end[0], end[1]];
+      x = row + dx;
+      y = col + dy;
+
+      while (x >= 0 && x < SIZE && y >= 0 && y < SIZE && board[x][y] === currentPlayer) {
+        count++;
+        [dx, dy] = [dx + end[0], dy + end[1]];
+        x = row + dx;
+        y = col + dy;
+      }
+
+      if (count >= 4) {
+        showWinningLine(row, col, direction);
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  // Check for a draw (tie) condition
+  function checkDraw() {
+    for (let i = 0; i < SIZE; i++) {
+      for (let j = 0; j < SIZE; j++) {
+        if (board[i][j] === EMPTY) {
+          return false; // There are still empty cells, not a draw
+        }
+      }
+    }
+    return true; // All cells are filled, it's a draw
+  }
+
+  // Show the winning line
+  function showWinningLine(row, col, direction) {
+    const boardElement = document.getElementById('board');
+    const line = document.createElement('div');
+    line.classList.add('line');
+
+    const cellSize = 100;
+    const lineWidth = 6;
+    const offset = (cellSize - lineWidth) / 2;
+    const [dx, dy] = direction;
+
+    const lineLength = (SIZE - 1) * cellSize;
+    line.style.width = (dx !== 0 ? lineLength : lineWidth) + 'px';
+    line.style.height = (dy !== 0 ? lineLength : lineWidth) + 'px';
+    line.style.top = (row * cellSize + offset) + 'px';
+    line.style.left = (col * cellSize + offset) + 'px';
+    line.style.transform = `translate(${dx * cellSize}px, ${dy * cellSize}px)`;
+
+    boardElement.appendChild(line);
+  }
+
+  // Handle cell click
+  function onCellClick(event) {
+    if (gameOver) return;
+
+    const row = parseInt(event.target.getAttribute('data-row'));
+    const col = parseInt(event.target.getAttribute('data-col'));
+
+    if (board[row][col] === EMPTY) {
+      board[row][col] = currentPlayer;
+      event.target.textContent = currentPlayer;
+
+      if (checkWin(row, col)) {
+        gameOver = true;
+      } else if (checkDraw()) {
+        gameOver = true;
+        alert("It's a draw!");
+      }
+
+      currentPlayer = currentPlayer === PLAYER_X ? PLAYER_O : PLAYER_X;
+    }
+  }
+
+  // Initialize the game
+  createBoard();
+</script>
+</body>
+</html>
