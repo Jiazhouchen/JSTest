@@ -110,33 +110,7 @@
     let [eq, cor, ra] = math_engine()
     draw_question()
 
-    function math_engine() {
-        const a = Math.round(Math.random()*20)
-        const b = Math.round(Math.random()*20)
-        const opor = ['+','-','×']
-        const sel_op = opor[Math.floor(Math.random() * opor.length)];
-        let ra=0;
-        let out;
-        let eq;
-        if (sel_op === '+') {
-            ra = a+b
-        } else if (sel_op === '-') {
-            ra = a-b
-        } else if (sel_op === '×') {
-            ra = a*b
-        }
 
-        if (Math.random() > 0.5) {
-            out = true
-            eq = `${a} ${sel_op} ${b} = ${ra}`
-        } else {
-            out = false
-            eq = `${a} ${sel_op} ${b} = ${ra + Math.ceil(Math.random()*20) - Math.ceil(Math.random()*20)}`
-        }
-
-        return [eq, out]
-
-    }
     function draw_question() {
         const ex_wrap = document.getElementById('eqwrap')
         if (ex_wrap)  {

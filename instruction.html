@@ -1,0 +1,110 @@
+<head>
+    <meta charset="UTF-8">
+    <title>MEG Study Time Course</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto Condensed">
+    <script src="js/jsPsych/jspsych.js"></script>
+    <script src="js/jsPsych/plugin-preload.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-auth.js"></script>
+    <script src="js/init.js"></script>
+    <script src="js/GeneralUtility.js"></script>
+    <script src="js/plugin-Gamble.js"></script>
+    <script src="js/plugin-Math.js"></script>
+    <script src="js/RateEmotionTrial.js"></script>
+    <script src="js/gen_conditions.js"></script>
+    <script src="js/plugin-TrustGame.js"></script>
+    <script src="js/plugin-RateEmotion.js"></script>
+    <script src="js/plugin-Compete.js"></script>
+    <script src="js/plugin-CrossBoard.js"></script>
+    <script src="js/maze.js"></script>
+    <script src="js/table_maze.js"></script>
+    <script src="js/instruct.js"></script>
+    <link href="js/jsPsych/jspsych.css" rel="stylesheet" type="text/css" />
+    <link href="css/general.css" rel="stylesheet" type="text/css" />
+</head>
+<style>
+    .instructionRow{
+        width: 60%;
+        height: 20%;
+        margin: 0% 10% 0% 10%;
+        padding: 0% 10% 0% 10%;
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: space-evenly;
+        align-items: center;
+    }
+    .instructionRow button{
+        color: black;
+        font-size: 3vmin;
+        border-radius: 10px;
+        border: 2px solid black;
+        max-height: 40%;
+        min-width: 30%;
+        animation-duration: 0.2s;
+        opacity: 0;
+        animation-name: appear;
+        animation-play-state: paused;
+        animation-fill-mode: forwards;
+    }
+    .instructionRow button:hover{
+        background: black;
+        color: whitesmoke;
+        border: 2px solid white;
+    }
+    .instructionRow .completedButton {
+        color: black !important;
+        background: #cedbcc !important;
+        border: 2px solid black !important;
+    }
+    .instructionRow .completedButton:hover {
+        color: whitesmoke!important;
+        background: #8d9c8a!important;
+        border: 2px solid white!important;
+    }
+</style>
+<body>
+    <div id="wrap" class="wrapLong">
+        <div id="msgBox" class="msgBox"></div>
+        <div id="instructionRow" class="instructionRow"></div>
+    </div>
+</body>
+<script>
+    const urlPara = new URLSearchParams(window.location.search)
+    let tlType = urlPara.get('tlType')
+    if (!tlType) {
+        tlType = 'Condensed'
+    }
+    let global_config;
+    let instView = {};
+    const listOfGames = ['Gamble', 'Math', 'Gamble II','Math II','Trust','Maze']
+    const functionRow = construct_function_row()
+    functionRow.childNodes[2].remove()
+    functionRow.style.position = 'absolute'
+    functionRow.style.bottom = '-8vmin'
+    functionRow.childNodes[2].setAttribute('iH',`In this section, instruction will be given for each of the tasks.
+    The reason for why we centralize the instruction & practice (instead of before each task) is to save time and
+    maximize number of trials.
+    We should plan on giving some form of reminder (1 page) on what the task is on display during between-task breaks.
+    This section will be conducted <strong> online </strong> & <strong>outside of scanner</strong>.`)
+    functionRow.childNodes[2].style.animation = '1s ease-in-out infinite hasInfo'
+    document.getElementById('wrap').appendChild(functionRow)
+    document.getElementById('msgBox').innerHTML = instMsgBox('init','msgBox')
+    let dSec = 0;
+    for (let lg of listOfGames) {
+        instView[lg] = 0;
+        const bt = document.createElement('button')
+        bt.textContent = lg
+        bt.id = lg+'@Button'
+        bt.addEventListener('click',instBtClick)
+        bt.setAttribute('visited', 'no')
+        bt.style.animationDelay = dSec + 's';
+        document.getElementById('instructionRow').appendChild(bt)
+        bt.style.animationPlayState = 'running'
+        dSec += 0.2
+    }
+    console.log(instView)
+    document.getElementById('instructionRow').childNodes[2].click()
+</script>
+</html>

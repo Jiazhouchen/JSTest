@@ -17,6 +17,7 @@
     <script src="js/plugin-RateEmotion.js"></script>
     <script src="js/plugin-Compete.js"></script>
     <script src="js/GambleTrial.js"></script>
+    <link href="css/general.css" rel="stylesheet" type="text/css" />
     <link href="js/jsPsych/jspsych.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
@@ -51,9 +52,7 @@
         emotion: 'GoEmo',
         alerttype: "inpage",
     }
-    timeline.push(test_plugin)
 	timeline.push(rank_plugin)
-    timeline.push(baseline_emo)
 
     jsPsych.run(timeline);
 </script>

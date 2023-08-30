@@ -30,10 +30,14 @@ function gen_rate_emo_page(trial) {
     }
     // Insert CSS.
     html += `<style>
+      h1 {
+        padding: 1%;
+        margin: 0;
+      }
       .jspsych-content {
         max-width: 1152px;
-        margin: 20px auto auto auto;
-        font-size: 17px;
+        margin: 1% auto auto auto;
+        font-size: 2vmin;
       }
       a:link {
         color: #29a3a3;
@@ -41,18 +45,21 @@ function gen_rate_emo_page(trial) {
       .button-row {
         display: flex;
         flex-direction: row;
-        column-gap: ${col_gap};
-        margin-bottom: ${bom_mar};
+        justify-content: space-between;
+        align-items: center;
+       
       }
       .button-row button {
         background-color: #F0F0F0;
-        min-width: 180px;
-        min-height: 60px;
-        padding: 8px 12px 8px 12px;
+        height: unset;
+        aspect-ratio: unset;
+        min-width: 16vmin;
+        min-height: 6vmin;
+        padding: 2px;
+        margin: 12px;
         color: black;
-        font-size: 20px;
-        font-weight:bold
-        border: none;
+        font-size: 2vmin;
+        font-weight:bold;
         border-radius: 10px;
         box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 5px 10px 0 rgba(0, 0, 0, 0.19);
       }
@@ -61,69 +68,35 @@ function gen_rate_emo_page(trial) {
         -webkit-filter: brightness(90%);
         background-color: #f2dbac;
       }
-      .button-lastrow {
-        display: flex;
-        flex-direction: row;
-        column-gap: ${col_gap_last};
-        margin-bottom: ${bom_mar_last};
-      }
-      .button-lastrow button {
-        background-color: #F0F0F0;
-        min-width: 180px;
-        min-height: 60px;
-        padding: 8px 12px 8px 12px;
-        color: black;
-        font-size: 20px;
-        font-weight:bold
-        border: none;
-        border-radius: 10px;
-        box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 5px 10px 0 rgba(0, 0, 0, 0.19);
-      }
-      .button-lastrow button:hover {
-        filter: brightness(90%);
-        -webkit-filter: brightness(90%);
-        background-color: #f2dbac;
-      }
+      
       .warning-message {
-        display: none;
+        height: 3vmin;
         text-align: center;
-        font-size: 30px;
+        font-size: 3vmin;
         font-weight: bold;
         color: #f54e16;
-        line-height: 1.5em;
-        margin-bottom: 50px;
+        margin-top: 3vmin;
+        opacity: 0;
+        transition-duration: 0.5s;
       }
       input[type=submit] {
-        min-width: 120px;
-        min-height: 50px;
+        min-width: 16vmin;
+        min-height: 6vmin;
         background-color: #c1d6c6;
         color: black;
-        padding: 10px 10px;
+        padding: 10px 10px 10px 10px;
+        margin-top: 3vmin;
         border-radius: 10px;
         font-size: 20px;
         font-weight:bold
-        margin: 0px 0 0px 0;
       }
       input[type=submit]:hover {
         filter: brightness(90%);
         -webkit-filter: brightness(90%);
       }
-      div {
-        border: 0px solid #73AD21;
-      }
-      div.veil {
-        position: absolute;
-        top: 0%;
-        left: 0%;
-        width: 100%;
-        height: 100%;
-        opacity: 100%;
-        backdrop-filter: blur(50px);
-        -webkit-backdrop-filter: blur(50px);
-       }
       </style>`
     // Add paragraph 1.
-    html += '<h3>Label Your Emotion</h3>'
+    html += '<h1>Label Your Emotion</h1>'
     html += '<hr>';
     // add counter-factual; one or two gamble; re-frame the switch; add robbing; detailed outline of the task
     // neutral to safe to safe // add interleve or block
@@ -174,7 +147,7 @@ function gen_rate_emo_page(trial) {
         html += '<button id="button-relief" style="font-weight:bold;">Relief</button>';
         html += '<button id="button-remorse" style="font-weight:bold;">Remorse</button>';
         html += '</div>';
-        html += '<div class="button-lastrow" id="last-button-row">';
+        html += '<div class="button-row" id="last-button-row">';
         html += '<button id="button-sadness" style="font-weight:bold;">Sadness</button>';
         html += '<button id="button-surprise" style="font-weight:bold;">Surprise</button>';
         html += '<button id="button-neutral" style="font-weight:bold;">Neutral</button>';
@@ -209,13 +182,9 @@ function gen_rate_emo_page(trial) {
     }
 
     // Add Warning Message:
-    html += '<div class="warning-message" id="toomany">';
-    html += `<center>!!   You can select AT MOST ${ul_text} emotion labels   !!</center>`
+    html += '<div class="warning-message" id="warningMsg">';
     html += '</div>'
 
-    html += '<div class="warning-message" id="toolittle">';
-    html += '<center>!!   You must select AT LEAST ONE emotion label    !!</center>'
-    html += '</div>'
 
     // Add submit button:
     html += '<form id="RateEmo">';
@@ -224,8 +193,3 @@ function gen_rate_emo_page(trial) {
     return  [html, emotions, upper_limit,performance.now()]
 }
 
-
-function  resetwarning() {
-    document.getElementById('toolittle').style.display = 'none';
-    document.getElementById('toomany').style.display = 'none';
-}

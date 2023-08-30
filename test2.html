@@ -3,15 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto Condensed">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Oswald">
+    <link href="css/general.css" rel="stylesheet" type="text/css" />
+    <link href="css/rank.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 
 </body>
 <script>
-    document.body.innerHTML = init_gamble_page()
-  draw_rankboard()
-  function draw_rankboard(){
-    const background = document.getElementById()
-  }
+ = initRank()
+function initRank(startPos) {
+    let
+    // only call this function if the Ranking is not existing;
+
+    const rankPage = document.createElement('div')
+    rankPage.id = "rankPage"
+    rankPage.className = "jsPsychDE"
+
+    //rankPage.style.display = 'none'
+    document.body.appendChild(rankPage)
+
+    const board = document.createElement('div')
+    board.className = 'rankBoard'
+    board.id = 'rankBoard'
+    rankPage.appendChild(board)
+
+    for (let i =1; i < 11; i++) {
+        const x = document.createElement('div')
+        x.className='rankEntry'
+        x.style.top = `${10*(i-1)}%`
+        x.id = `pos-${i}`
+
+        if (i === 1) {
+            x.style.borderRadius = '40px 40px 0px 0px'
+        }
+        if (i === 10) {
+            x.style.borderRadius = '0px 0px 40px 40px'
+        }
+
+        const name = document.createElement('div')
+        name.className = 'rankName'
+        name.id = `rna-${i}`
+
+        const nametext = document.createElement('h1')
+        nametext.className = 'name'
+        nametext.id = `rnametext-${i}`
+        nametext.textContent = `Other Players`
+
+        const pt = document.createElement('div')
+        pt.className = 'rankPt'
+        pt.id = `rpt-${i}`
+
+        const pos_txt = document.createElement('h1')
+        pos_txt.id = `rpostxt-${i}`
+        pos_txt.className = 'pos'
+        pos_txt.textContent = `${(i===10) ? '':''}${i}`
+
+        const pt_text = document.createElement('h1')
+        pt_text.id = `rpointtxt-${i}`
+        pt_text.className = `points`
+        pt_text.textContent = `${Math.round(100/(i))} pts`
+
+        const ch_text = document.createElement('h1')
+        ch_text.id = `cgtext-${i}`
+        ch_text.className = `deltaPoints`
+        ch_text.textContent = '+50'
+        ch_text.style.opacity = '0%'
+
+        name.appendChild(pos_txt)
+        name.appendChild(nametext)
+        pt.appendChild(pt_text)
+        pt.appendChild(ch_text)
+        x.appendChild(name)
+        x.appendChild(pt)
+        board.appendChild(x)
+    }
+
+
+}
 </script>
 </html>

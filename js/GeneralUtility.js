@@ -302,3 +302,48 @@ function frac_hack(x, assign_back){
     }
     return [x, maxP]
 }
+
+function float_box(e) {
+    const wrap = document.getElementById('wrap')
+    //adjust offset here:
+    e.target.style.animationPlayState = 'paused'
+    let el = e.target
+    let osT = e.target.offsetTop
+    let osH = e.target.offsetHeight
+    let osL = e.target.offsetLeft
+    let osW = e.target.offsetWidth
+    while (el.offsetParent.id !== 'wrap') {
+        osT += el.offsetParent.offsetTop
+        osL += el.offsetParent.offsetLeft
+
+        el = el.offsetParent
+    }
+
+    if (e && e.type === 'mouseover')  {
+        const infoBox = document.createElement('div')
+        infoBox.className = 'infoBox'
+        infoBox.id = 'infoBox'
+        wrap.appendChild(infoBox)
+        infoBox.style.bottom = (wrap.offsetHeight - osT + (osH/2))+'px'
+        infoBox.style.left = (osL - (infoBox.clientWidth /2) + (osW / 2))+'px'
+        infoBox.innerHTML = e.target.getAttribute('iH')
+    } else if (e && e.type === 'mouseleave') {
+        document.getElementById('infoBox').remove()
+    }
+
+}
+
+function reset_animation(Id) {
+    let el = document.getElementById(Id);
+    el.style.animation = 'none';
+    el.offsetHeight; /* trigger reflow */
+    el.style.animation = null;
+}
+
+function updateInfo(strX) {
+    const infoButton = document.getElementById('infoButton')
+    if (infoButton) {
+        infoButton.setAttribute('iH', strX)
+        infoButton.style.animation = '1s ease-in-out infinite hasInfo'
+    }
+}

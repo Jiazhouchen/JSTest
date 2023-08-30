@@ -17,6 +17,15 @@ var jsPsychRateEmotion = (function (jspsych) {
         default: 'inpage',
         description: 'How are the alerts beings display, Options are prompt or inpage, or none. None will show no alert'
       },
+      ShowEmo: {
+        type: jspsych.ParameterType.BOOL,
+        default: true,
+      },
+      unveilT: {
+        type: jspsych.ParameterType.INT,
+        pretty_name: 'iti',
+        default: 200,
+      },
     }
   }
 
@@ -33,26 +42,28 @@ var jsPsychRateEmotion = (function (jspsych) {
       this.jsPsych = jsPsych;
     }
     trial(display_element, trial) {
-
+      if (trial.ShowEmo === false) {
+        return this.jsPsych.finishTrial({display: false})
+      }
       let [html, emotions, upper_limit, startTime] = gen_rate_emo_page(trial);
-
-
+      const jsPsych = this.jsPsych;
       // Display HTML.
       display_element.innerHTML = html;
 
       const veil = document.createElement('div')
       veil.className = 'veil'
       document.body.append(veil)
-
+      veil.style.backdropFilter = 'blur(30px)'
+      veil.style.webkitBackdropFilter = 'blur(30px)'
+      veil.style.display = 'inline'
       veil.animate([
-            {backdropFilter: 'blur(50px)',webkitBackdropFilter: 'blur(50px)'},
+            {backdropFilter: 'blur(30px)',webkitBackdropFilter: 'blur(30px)'},
             {backdropFilter: 'none',webkitBackdropFilter: 'none'}
           ],
-          {duration:300,iterations: 1,delay:0,fill: 'forwards'}).finished.then(() => {
+          {duration:trial.unveilT,iterations: 1,delay:0,fill: 'forwards'}).finished.then(() => {
             veil.remove()
       })
 
-      console.log(veil)
       //---------------------------------------//
       // Response handling.
       //---------------------------------------//
@@ -104,14 +115,12 @@ var jsPsychRateEmotion = (function (jspsych) {
         num_sel_emo = Object.values(emo_grid).reduce((a, b) => a + b, 0);
       }
       function  resetwarning() {
-        document.getElementById('toolittle').style.display = 'none';
-        document.getElementById('toomany').style.display = 'none';
+        document.getElementById('warningMsg').textContent = '';
+        document.getElementById('warningMsg').style.opacity = '0';
       }
-
-      display_element.querySelector('#RateEmo').addEventListener('submit', function(event) {
-
+      display_element.querySelector('#RateEmo').addEventListener('submit', function(e) {
         // Wait for response
-        event.preventDefault();
+        e.preventDefault();
         if (num_sel_emo > 0 & num_sel_emo < (upper_limit+1)) {
           // Measure response time
           var submit_time = performance.now() - startTime;
@@ -139,10 +148,8 @@ var jsPsychRateEmotion = (function (jspsych) {
               {duration:400,iterations: 1,delay:0,fill: 'forwards'}
           ).finished.then(()=>{
             veil.remove()
-            function da() {
-              jsPsych.finishTrial(this)
-            }
-            jsPsych.pluginAPI.setTimeout(da.bind(trialdata), this.iti);
+
+            jsPsych.finishTrial(trialdata)
           })
 
         } else if (num_sel_emo < 1) {
@@ -150,17 +157,17 @@ var jsPsychRateEmotion = (function (jspsych) {
             alert ("You must select AT LEAST ONE emotion label");
           } else if (trial.alerttype == "inpage") {
             resetwarning()
-            document.getElementById('last-button-row').style['margin-bottom'] = '55px';
-            document.getElementById('toolittle').style.display = 'block';
+            document.getElementById('warningMsg').textContent = `!!   You must select AT LEAST ONE emotion label   !!`
+            document.getElementById('warningMsg').style.opacity = '1';
           }
 
         } else if (num_sel_emo > (upper_limit)) {
           if (trial.alerttype == "prompt") {
-            alert (`You can select AT MOST ${ul_text} emotion labels`);
+            alert (`You can select AT MOST ${upper_limit} emotion labels`);
           } else if (trial.alerttype == "inpage") {
             resetwarning()
-            document.getElementById('last-button-row').style['margin-bottom'] = '55px';
-            document.getElementById('toomany').style.display = 'block';
+            document.getElementById('warningMsg').textContent = `!!   You can select AT MOST ${upper_limit} emotion labels   !!`
+            document.getElementById('warningMsg').style.opacity = '1';
           }
         }
         
