@@ -1,23 +1,24 @@
+<html>
 <head>
     <meta charset="UTF-8">
     <title>MEG Study Time Course</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto Condensed">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Oswald">
     <script src="js/jsPsych/jspsych.js"></script>
     <script src="js/jsPsych/plugin-preload.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-auth.js"></script>
+    <script src="js/firebase.js"></script>
     <script src="js/init.js"></script>
-    <script src="js/GeneralUtility.js"></script>
+    <script src="js/utility.js"></script>
     <script src="js/plugin-Gamble.js"></script>
     <script src="js/plugin-Math.js"></script>
-    <script src="js/RateEmotionTrial.js"></script>
-    <script src="js/gen_conditions.js"></script>
     <script src="js/plugin-TrustGame.js"></script>
     <script src="js/plugin-RateEmotion.js"></script>
     <script src="js/plugin-Compete.js"></script>
     <script src="js/plugin-CrossBoard.js"></script>
-    <script src="js/maze.js"></script>
+    <script src="js/plugin-Maze.js"></script>
     <script src="js/table_maze.js"></script>
     <script src="js/instruct.js"></script>
     <link href="js/jsPsych/jspsych.css" rel="stylesheet" type="text/css" />
@@ -27,12 +28,12 @@
     .instructionRow{
         width: 60%;
         height: 20%;
-        margin: 0% 10% 0% 10%;
-        padding: 0% 10% 0% 10%;
+        margin: 0 10vw 0 10vw;
+        padding: 0 10% 0 10%;
         display: flex;
         flex-direction: row;
         flex-wrap: wrap;
-        justify-content: space-evenly;
+        justify-content: space-between;
         align-items: center;
     }
     .instructionRow button{
@@ -68,14 +69,19 @@
     <div id="wrap" class="wrapLong">
         <div id="msgBox" class="msgBox"></div>
         <div id="instructionRow" class="instructionRow"></div>
+        <button id = "finishButton" onclick='window.location= "main.html"+`?tlType=${tlType}`' style="
+            display: none;
+            min-width: 10vmin;
+            padding: 0 2% 0 2%;
+            margin: 3vh 20vw 0 43.5vw
+        "> Start Study </button>
     </div>
+
 </body>
 <script>
     const urlPara = new URLSearchParams(window.location.search)
     let tlType = urlPara.get('tlType')
-    if (!tlType) {
-        tlType = 'Condensed'
-    }
+    console.log(tlType)
     let global_config;
     let instView = {};
     const listOfGames = ['Gamble', 'Math', 'Gamble II','Math II','Trust','Maze']
@@ -86,14 +92,15 @@
     functionRow.childNodes[2].setAttribute('iH',`In this section, instruction will be given for each of the tasks.
     The reason for why we centralize the instruction & practice (instead of before each task) is to save time and
     maximize number of trials.
-    We should plan on giving some form of reminder (1 page) on what the task is on display during between-task breaks.
-    This section will be conducted <strong> online </strong> & <strong>outside of scanner</strong>.`)
+    We should plan on giving some form of reminder (1 page) on what the current task is about, during breaks or between-tasks.
+    This section will be conducted <strong> online </strong> & <strong>outside of scanner</strong>.
+    Use the skip button to skip to the next part.`)
     functionRow.childNodes[2].style.animation = '1s ease-in-out infinite hasInfo'
     document.getElementById('wrap').appendChild(functionRow)
     document.getElementById('msgBox').innerHTML = instMsgBox('init','msgBox')
     let dSec = 0;
     for (let lg of listOfGames) {
-        instView[lg] = 0;
+        instView[lg] = 0 ;
         const bt = document.createElement('button')
         bt.textContent = lg
         bt.id = lg+'@Button'
@@ -104,7 +111,18 @@
         bt.style.animationPlayState = 'running'
         dSec += 0.2
     }
+    if (Object.values(instView).reduce( (a, b) => a + b,0) === Object.values(instView).length) {
+        console.log('works')
+        document.getElementById('finishButton').style.display = 'inline'
+    }
+    resetSkipButton()
+    document.getElementById('skipButton').addEventListener('click', ()=> {
+        console.log('works')
+        document.getElementById('finishButton').style.display = 'inline'
+    })
     console.log(instView)
-    document.getElementById('instructionRow').childNodes[2].click()
+
+    document.getElementById('Trust@Button').click()
+
 </script>
 </html>

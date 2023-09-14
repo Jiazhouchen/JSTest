@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Main Study Page</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto Condensed">
+    <script src="js/jsPsych/jspsych.js"></script>
+    <script src="js/jsPsych/plugin-preload.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-auth.js"></script>
+    <script src="js/firebase.js"></script>
+    <script src="js/init.js"></script>
+    <script src="js/utility.js"></script>
+    <script src="js/plugin-Gamble.js"></script>
+    <script src="js/plugin-Math.js"></script>
+    <script src="js/plugin-TrustGame.js"></script>
+    <script src="js/plugin-RateEmotion.js"></script>
+    <script src="js/plugin-Compete.js"></script>
+    <script src="js/plugin-CrossBoard.js"></script>
+    <script src="js/plugin-Maze.js"></script>
+    <script src="js/plugin-Info.js"></script>
+    <script src="js/table_maze.js"></script>
+    <script src="js/instruct.js"></script>
+    <script src="js/genConditions.js"></script>
+    <script src="js/studyTimeline.js"></script>
+    <link href="js/jsPsych/jspsych.css" rel="stylesheet" type="text/css" />
+    <link href="css/general.css" rel="stylesheet" type="text/css" />
+</head>
+<style></style>
+<body>
+<div id="wrap" class="wrapLong">
+    <div id="msgBox" class="msgBox"></div>
+    <div id="optionRow" class="optionRow" style="justify-content: space-around;">
+        <button id = 'startButton'>Start</button>
+    </div>
+</div>
+<div id='display_element' class='jsPsychDE' style="display: none"></div>
+</body>
+<script>
+    const functionRow = construct_function_row()
+    const urlPara = new URLSearchParams(window.location.search)
+    let tlType = urlPara.get('tlType')
+    let sessNum = parseInt( urlPara.get('sessNum') )
+    if (!sessNum) {
+        sessNum = 1;
+    }
+    if (!tlType) {
+        tlType = 'Condensed'
+    }
+    functionRow.style.position = 'absolute'
+    functionRow.style.bottom = '-8vmin'
+    functionRow.childNodes[3].setAttribute('iH',`The session start page is evoked at the beginning
+    and when the participants finished a session and ready for the next. Using the skip button here
+    will instead skip ahead to the next session. To view the content of the session, hover over the start button.`)
+    functionRow.childNodes[3].style.animation = '1s ease-in-out infinite hasInfo'
+    document.getElementById('wrap').appendChild(functionRow)
+
+
+    document.getElementById('timer').setAttribute('sTimerMin','120')
+    document.getElementById('timer').setAttribute('sTimerSec','0')
+    document.getElementById('timer').setAttribute('initTime',performance.now())
+    document.getElementById('timer').setAttribute('curTime',performance.now())
+    updateTimer()
+
+    getMazeConfig().then((MazeInfo)=> {
+        setUpSession(tlType,sessNum,MazeInfo)
+        resetSkipButton()
+        document.getElementById('skipButton').addEventListener('click', () => {
+            sessNum += 1
+            setUpSession(tlType,sessNum,MazeInfo)
+        })
+    })
+
+
+
+
+
+
+    function setUpSession(tl, num, MazeInfo) {
+        if (num > 3 ) {
+            num = 3
+        }
+        let nStory, nTask, setUpWord;
+        if (num === 0) {
+            setUpWord = `<p>We will start with a quick set up session to get you situated. </p>`
+        } else {
+            setUpWord = ''
+        }
+        switch(tl) {
+            case 'Balanced':
+                nStory = 4;
+                nTask = 2;
+                break;
+            case 'Condensed':
+                nStory = 6;
+                nTask = 2;
+        }
+        document.getElementById('msgBox').innerHTML = `
+            <h1>Session ${num} out of 3</h1>
+            <p>As any other sessions, this session is scheduled to last 120 minutes.</p>
+            <p>In this session, you will listen to ${nStory} stories and play ${nTask} games. </p>
+            `+setUpWord+`
+            <p>When it is ready, the experimenter will let you know when it's time to start. </p>
+            <p>The following information will NOT be displayed for participants:</p>
+            <p>There will be no pause buttons, but you may skip each trial as you wish.</p>
+            <p>There are placeholders screens for breaks and calibration. Use skip button to terminate as you wish.</p>
+        `
+
+        let startButton = document.getElementById("startButton");
+        let new_element;
+        if (startButton) {
+            new_element = startButton.cloneNode(true);
+            startButton.parentNode.replaceChild(new_element, startButton);
+        }
+
+        document.getElementById('startButton').addEventListener('click', ()=> {
+            let [jsPsychXC, taskProcedure] = getTimeline(tl,num,MazeInfo)
+            jsPsychXC.pluginAPI.clearAllTimeouts()
+            jsPsychXC.pluginAPI.cancelAllKeyboardResponses()
+            document.getElementById('display_element').style.display = 'inline'
+            console.log(taskProcedure)
+            jsPsychXC.run(taskProcedure)
+        })
+
+
+    }
+
+</script>
+</html>

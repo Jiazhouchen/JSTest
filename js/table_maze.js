@@ -13,23 +13,29 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 */
 
 /* Modified by Jiazhou Chen 2023 */
-var Maze = /** @class */ (function () {
+let Maze = /** @class */ (function () {
     // constructor
-    function Maze(cw, ch) {
-        var i = 0;
-        this.cells_w = cw;
-        this.cells_h = ch;
-        // initialize maze
-        this.maze_array = new Array(this.cells_w * this.cells_h);
-        // fill maze array with walls (1)
-        for (i = 0; i < this.cells_h * this.cells_w; i += 1) {
-            this.maze_array[i] = true;
+    function Maze(cw, ch, preset) {
+        if (preset) {
+            this.cells_w = preset.cells_w;
+            this.cells_h = preset.cells_h;
+            this.maze_array = preset.maze_array;
+        } else {
+            this.cells_w = cw;
+            this.cells_h = ch;
+            // initialize maze
+            this.maze_array = new Array(this.cells_w * this.cells_h);
+            // fill maze array with walls (1)
+            for (let i = 0; i < this.cells_h * this.cells_w; i += 1) {
+                this.maze_array[i] = true;
+            }
+            console.log("The maze dimensions are set to (w = " + this.cells_w + ", h = " + this.cells_h + ").");
+            console.log("The maze has been initialized.");
+            // generate maze
+            this.dig(1, 1);
+            console.log("The maze has been generated.");
         }
-        console.log("The maze dimensions are set to (w = " + this.cells_w + ", h = " + this.cells_h + ").");
-        console.log("The maze has been initialized.");
-        // generate maze
-        this.dig(1, 1);
-        console.log("The maze has been generated.");
+
     }
     // internal recursive path building (depth first)
     Maze.prototype.dig = function (cy, cx) {
@@ -95,9 +101,10 @@ var Maze = /** @class */ (function () {
         tbr.className = 'mzTR'
         const tbw = document.createElement('td')
         tbw.className = 'mzW'
+        tbw.setAttribute('type','wall')
         const tbf = document.createElement('td')
         tbf.className = 'mzF'
-
+        tbf.setAttribute('type','floor')
         for (r = 0; r < this.cells_h; r += 1) {
             tbl.appendChild(tbr.cloneNode())
             for (c = 0; c < this.cells_w; c += 1) {
@@ -115,7 +122,7 @@ var Maze = /** @class */ (function () {
     return Maze;
 }());
 // entry call
-function aMazeMe(w, h) {
+function aMazeMe(w, h, preset) {
     // minimum width is three
     if (w < 3) {
         w = 3;
@@ -138,6 +145,5 @@ function aMazeMe(w, h) {
         h += 1;
     }
     // instantiate, create and display maze
-    var maze = new Maze(w, h);
-    return [maze.displayMaze(),maze];
+    return new Maze(w, h, preset);;
 }

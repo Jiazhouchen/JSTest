@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Study</title>
+    <meta charset="UTF-8">
+    <title>Main Study Page</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto Condensed">
+    <script src="js/jsPsych/jspsych.js"></script>
+    <script src="js/jsPsych/plugin-preload.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-auth.js"></script>
+    <script src="js/firebase.js"></script>
+    <script src="js/init.js"></script>
+    <script src="js/utility.js"></script>
+    <script src="js/plugin-Gamble.js"></script>
+    <script src="js/plugin-Math.js"></script>
+    <script src="js/plugin-TrustGame.js"></script>
+    <script src="js/plugin-RateEmotion.js"></script>
+    <script src="js/plugin-Compete.js"></script>
+    <script src="js/plugin-CrossBoard.js"></script>
+    <script src="js/plugin-Maze.js"></script>
+    <script src="js/plugin-Info.js"></script>
+    <script src="js/table_maze.js"></script>
+    <script src="js/instruct.js"></script>
+    <script src="js/genConditions.js"></script>
+    <script src="js/studyTimeline.js"></script>
+    <link href="js/jsPsych/jspsych.css" rel="stylesheet" type="text/css" />
+    <link href="css/general.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+    <div id="wrap" class="wrapLong">
+        <div id="msgBox" class="msgBox">
+
+            <h1>Welcome to the study</h1>
+            <p>This is the behavioral only version. It is set to be piloted soon.</p>
+            <p>Currently, it does not contain any story listening or breaks.</p>
+            <p>Each task will have 3 trial per conditions. This number WILL CHANGE. IT IS NOT FINAL!</p>
+            <p>Practice will be given for actual participants.</p>
+        </div>
+        <div id="optionRow" class="optionRow" style="justify-content: space-around;">
+            <button id = 'startButton'>Start</button>
+        </div>
+    </div>
+    <div id='display_element' class='jsPsychDE' style="display: none"></div>
+</body>
+<script>
+    const urlPara = new URLSearchParams(window.location.search)
+    getMazeConfig().then((MazeInfo)=> {
+        let jsPsych = initJsPsych({
+            override_safe_mode: true,
+            display_element: 'display_element',
+            MazeInfo: MazeInfo,
+            on_finish: () => {
+                document.getElementById('display_element').style.display = 'none'
+                alert('ALL DONE!')
+            }
+        });
+        let taskProcedure = [];
+    })
+
+    function genBehavContin(jsPsych) {
+        jsPsych.data.addProperties({pS: initPs(10,5)});
+
+    }
+
+</script>
+</html>

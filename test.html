@@ -3,49 +3,42 @@
 <head>
   <meta charset="UTF-8">
   <title>Test</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto Condensed">
   <script src="js/jsPsych/jspsych.js"></script>
-  <script src="js/jsPsych/plugin-preload.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-firestore.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-auth.js"></script>
-  <script src="js/GeneralUtility.js"></script>
-  <script src="js/EmoGamblingTrial.js"></script>
-  <script src="js/RateEmotionTrial.js"></script>
-  <script src="js/gen_conditions.js"></script>
-  <script src="js/plugin-EmoGamblingTask.js"></script>
-  <script src="js/plugin-RateEmotion.js"></script>
-  <script src="js/plugin-Gamble.js"></script>
-  <script src="js/GambleTrial.js"></script>
+  <script src="js/plugin-EmoGrade.js"></script>
   <link href="js/jsPsych/jspsych.css" rel="stylesheet" type="text/css" />
+  <link href="css/general.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
+  <div class="wrapLong" id="testWrap"></div>
+  <div class="jsPsychDE" id="display_element"></div>
 </body>
 <script>
-  let timeline = [];
   let jsPsych = initJsPsych({
-    on_data_update: function () {
-      dt = jsPsych.data.get().last(1).values()[0]
-      console.log('Data has updated')
-      console.log(dt)
+    override_safe_mode: true,
+    display_element: 'display_element',
+    on_finish: function () {
+      alert('Yo it done')
     },
-    exclusions: {min_width: 0,min_height: 0, audio: true}, /* need at least 720p display  exclusions: {min_width: 1152,min_height: 648, audio: true}*/
-    override_safe_mode: true
   });
-  let test_plugin = {
-    type: jsPsychGamble,
-    rank: false,
-    which_side: 'left',
-    switch: true,
-    win: 'lose',
+  if (false) {
+    // here's to test the Gambling Contingency generation.
+    console.log(contingWrapGam(18,[0.7],
+            ['worse', 'better', 'same'],0.1,3))
   }
-  let baseline_emo = {
-    type: jsPsychRateEmotion,
-    emotion: 'GoEmo',
-    alerttype: "inpage",
+  if (false) {
+    // here's to test the trust game contingency generation.
+    console.log(trustContin(18,['match', 'worse'],3))
+
   }
-  timeline.push(test_plugin)
-  timeline.push(baseline_emo)
-  timeline.push(test_plugin)
-  jsPsych.run(timeline);
+  if (true) {
+    document.body.innerHTML = initDemoEmoGrade()
+    let thing = {
+      type: jsPsychEmoGrade,
+      iti: 500,
+      audio: '',
+    }
+  }
+
 </script>
 </html>

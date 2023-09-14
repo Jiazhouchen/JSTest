@@ -129,7 +129,7 @@ function Feedback(trial,ctx,response,display_element) {
 function MoveOn(display_element, trial, response, ctx) {
 
     if(trial.show_emo_rate === 1) {
-        let [html, emotions, upper_limit, startTime] = gen_rate_emo_page(trial);
+        let [html, emotions, upper_limit, startTime] = initEmoPage(trial);
         display_element.innerHTML=html
         window.onbeforeunload = function () {
             window.scrollTo(0, 0);

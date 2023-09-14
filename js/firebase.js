@@ -12,10 +12,10 @@ firebase.initializeApp(firebaseConfig);
 // Enable persistence
 firebase.firestore().enablePersistence()
     .catch(function(err) {
-        if (err.code == 'failed-precondition') {
+        if (err.code === 'failed-precondition') {
             // Multiple tabs open, persistence can only be enabled
             // in one tab at a a time.
-        } else if (err.code == 'unimplemented') {
+        } else if (err.code === 'unimplemented') {
             // The current browser does not support all of the
             // features required to enable persistence
         }
@@ -24,7 +24,7 @@ firebase.firestore().enablePersistence()
 
 
 firebase.auth().signInAnonymously();
-let uid, db = firebase.firestore();;
+let uid, db = firebase.firestore();
 firebase.auth().onAuthStateChanged(async function (user) {
     if (user) {
         uid = user.uid;
@@ -32,4 +32,20 @@ firebase.auth().onAuthStateChanged(async function (user) {
     }
     await uid
 })
+
+function ensure_uid_set(timeout) {
+    let start = performance.now()
+    return new Promise(wait_for_uid);
+
+    function wait_for_uid(resolve, reject) {
+        if (uid) {
+            resolve(uid);
+        } else if (timeout && (performance.now() - start) >= timeout) {
+            reject(new Error("Timeout while getting firebase uid"));
+        } else {
+            setTimeout(wait_for_uid.bind(this, resolve, reject), 30);
+        }
+
+    }
+}
 

@@ -1,0 +1,20 @@
+[
+  {
+    "name": "Jeff",
+    "color": "#94bf26",
+    "colorLight": "#cdd1b4",
+    "bio":  ""
+  },
+  {
+    "name": "Matt",
+    "color": "#66bbcc",
+    "colorLight": "#c8d8db",
+    "bio": ""
+  },
+  {
+    "name": "Alex",
+    "color": "#4a26bf",
+    "colorLight": "#bab5c9",
+    "bio": ""
+  }
+]

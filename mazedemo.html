@@ -1,0 +1,447 @@
+    <!DOCTYPE html>
+    <html lang="en" xmlns="">
+    <head>
+        <meta charset="UTF-8">
+        <title>Title</title>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto Condensed">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Oswald">
+        <script src="js/jsPsych/jspsych.js"></script>
+        <script src="js/jsPsych/plugin-preload.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-app.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-firestore.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-auth.js"></script>
+        <script src="js/firebase.js"></script>
+        <script src="js/init.js"></script>
+        <script src="js/utility.js"></script>
+        <script src="js/plugin-Gamble.js"></script>
+        <script src="js/plugin-Math.js"></script>
+        <script src="js/plugin-TrustGame.js"></script>
+        <script src="js/plugin-RateEmotion.js"></script>
+        <script src="js/plugin-Compete.js"></script>
+        <script src="js/plugin-CrossBoard.js"></script>
+        <script src="js/plugin-Maze.js"></script>
+        <script src="js/plugin-Info.js"></script>
+        <script src="js/table_maze.js"></script>
+        <script src="js/instruct.js"></script>
+        <script src="js/genConditions.js"></script>
+        <script src="js/studyTimeline.js"></script>
+        <link href="js/jsPsych/jspsych.css" rel="stylesheet" type="text/css" />
+        <link href="css/general.css" rel="stylesheet" type="text/css" />
+    </head>
+    <style>
+        div{
+            border: 0px solid green;
+        }
+        .mzTight {
+            /* table style */
+            position: absolute;
+            top: 5%;
+            padding:16px;
+            border-spacing: 0;
+            border-radius: 10px;
+            box-shadow: 5px 5px 10px rgb(224,224,224);
+        }
+        .mzTR {
+            border: none;
+            width: auto;
+        }
+        .mzW {
+            /* wall cell */
+            border: none;
+            background-color: black;
+        }
+
+        .mzF {
+            /* floor cell */
+            border: 1px solid lightgrey;
+            padding: 0;
+            margin: 0;
+            border-spacing: 0;
+            line-height: 0;
+            background-color: white;
+        }
+        .mzF:hover {
+            background-color: red;
+            content: '23'
+        }
+        .mzC1 {
+            position: absolute;
+            background-color: #c8e6d0;
+            overflow: hidden;
+            border-radius: 10px;
+            scale: 80%;
+            z-index: 99;
+            opacity: 80%;
+            pointer-events: none;
+        }
+
+        .mzPrize {
+            position: absolute;
+            border: 1px solid lightgoldenrodyellow;
+            background-color: gold;
+            overflow: hidden;
+            border-radius: 10px;
+            scale: 90%;
+            z-index: 98;
+            pointer-events: none;
+        }
+
+        .infoBox {
+            font-family: "Oswald", sans-serif;
+            position: absolute;
+            display: flex;
+            backdrop-filter: blur(20px);
+            line-height: 100%;
+            align-items:center;
+            justify-content:center;
+            font-size: 5vh;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 5px 5px 10px rgb(224,224,224);
+            z-index: 2;
+        }
+        .infoBox p strong {
+            color: indianred;
+        }
+        .inputDiv {
+            font-family: "Oswald", sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            width: 20%;
+            height: 100%;
+            flex-wrap: wrap;
+            font-size: 5vh;
+            background-color: #f7fcff;
+            border-radius: 10px;
+            padding: 0 10px 0 10px;
+            z-index: 2;
+        }
+        .inputDiv * {
+            margin: 0 0 10px 0;
+        }
+        .inputDiv h1 {
+            font-size: 4vmin;
+        }
+        .inputDiv p {
+            font-size: 2.5vmin;
+        }
+        .inputDiv select {
+            min-height: 5%;
+            width: 50%;
+            font-size: 2.5vmin;
+            border-radius: 10px;
+            border-color: white;
+            box-shadow: 5px 5px 10px rgb(224,224,224);
+        }
+        .inputDiv button {
+            box-shadow: 5px 5px 10px rgb(224,224,224);
+            animation-name: unset;
+        }
+
+        .numSelectWrap {
+            display: flex;
+            flex-direction: row;
+            justify-content: flex-start;
+        }
+        .numSelectWrap button {
+            aspect-ratio: 1/1;
+            height: 60%;
+            line-height: 4vmin;
+            border-radius: 100px;
+            font-size: 4vmin;
+            margin-top: 4%;
+        }
+        .numSelectWrap div {
+            display: flex;
+            justify-content: space-around;
+            font-size: 5vmin;
+            width: 25%;
+        }
+
+        .cordSelectWrap {
+            display: flex;
+            padding: 0;
+        }
+        .cordSelectWrap p {
+            font-size: 5vmin;
+            margin: 0 5% 0 3%;
+        }
+        .cordSelectWrap input {
+            width: 5.5vmin;
+            aspect-ratio: 1/1;
+            border-color: white;
+            font-size: 5vmin;
+            border-radius: 10px;
+            border-width: 3px;
+            box-shadow: 5px 5px 10px rgb(224,224,224);
+            z-index: 2;
+        }
+
+        .cordSelectWrap input:focus {
+            outline:none;
+            border-width: 3px;
+            border-color: #465878;
+        }
+
+    </style>
+    <body>
+        <div id= 'initWrap' class="wrap">
+            <div id='msgBox' class="msgBox">
+                <h1>Maze Related</h1>
+                <p>This page is used for maze stuff.</p>
+                <p>Use Generate Maze to COMPLETELY regenerate all mazes. NUCLEAR OPTION</p>
+                <p>Use Demo Maze to see what it looks like in task. </p>
+                <p>Use Config Maze to configure already generated Maze. </p>
+
+            </div>
+            <p id="updateT"></p>
+            <div class="optionRow">
+                <button onclick="genMazeUpdate()">Generate Maze</button>
+                <button onclick="doMaze()">Demo Maze</button>
+                <button onclick="configMaze()">Config Maze</button>
+            </div>
+
+
+        </div>
+        <div id = 'display_element' class = 'jsPsychDE' style="display: none"></div>
+    </body>
+    <script>
+        async function doMaze() {
+            document.getElementById('display_element').style.display = 'inline'
+            let [jsPsych,taskProcedure] = await getPracticeProcedure('Maze')
+            jsPsych.run([taskProcedure]);
+        }
+        doMaze()
+        async function configMaze() {
+            const MazeInfo = await getMazeConfig()
+            window.MazeInfo = MazeInfo;
+            document.getElementById('initWrap').remove()
+            const wrap = document.createElement('div')
+            wrap.id = 'mazeWrap'
+            wrap.className = 'wrapLong'
+            wrap.setAttribute('MazeInfo',MazeInfo)
+            document.body.appendChild(wrap)
+            const allSizes = Object.keys(MazeInfo)
+            const inputDiv = document.createElement('div')
+            inputDiv.className = 'inputDiv'
+            inputDiv.id = 'inputDiv'
+            inputDiv.innerHTML = `
+                <h1>Maze Configuration</h1>
+                <p>Maze Size: </p>
+                <select onchange='mazeVChange(this)' id = 'curSize'>
+                </select>
+                <p>Maze Index: </p>
+                <div class="numSelectWrap">
+                    <button onclick="mazeVChange(this)">-</button>
+                    <div id="curInd">0</div>
+                    <button onclick="mazeVChange(this)">+</button>
+                </div>
+                <p>Start Point:</p>
+                <div class="cordSelectWrap">
+                    <input onchange="updateMazeComp(this)" id="mzC1@r">
+                    <p>, </p>
+                    <input onchange="updateMazeComp(this)" id="mzC1@c">
+                </div>
+                <p>Gift Box:</p>
+                <div class="cordSelectWrap">
+                    <input onchange="updateMazeComp(this)" id="mzPrize@r">
+                    <p>, </p>
+                    <input onchange="updateMazeComp(this)" id="mzPrize@c">
+                </div>
+                <p>Condition Type:</p>
+                <select id = 'conType' style="min-width: 100%">
+                    <option value="na">Not Specified</option>
+                    <option value="greater">Greater than 10</option>
+                    <option value="lessCAN">Less than 10 (Possible)</option>
+                    <option value="lessNOT">Less than 10 (Not Possible)</option>
+                    <option value="at">At 10</option>
+                </select>
+                <div id="statusTxt" style="margin-top: auto; opacity: 0">Refreshing...</div>
+                <button id="refreshButton">Refresh</button>
+                <button id="submitButton" >Submit</button>
+            `
+
+            wrap.appendChild(inputDiv)
+            for (let aSize of allSizes) {
+                const opt = document.createElement('option')
+                opt.value = aSize
+                opt.text  = aSize
+                document.getElementById('curSize').add(opt,null)
+            }
+
+
+
+            const curSize = document.getElementById('curSize').value
+            const curInd = parseInt(document.getElementById('curInd').textContent)
+            const curMaze = genMazeMod(curSize,curInd,MazeInfo,'mazeWrap')
+
+
+
+            const infoBox = document.createElement('div')
+            infoBox.className = 'infoBox'
+            infoBox.id = 'infoBox'
+            wrap.appendChild(infoBox)
+
+
+
+            resize_maze()
+            addEventListener("resize", resize_maze);
+            return MazeInfo
+        }
+
+        function genMazeMod(curSize,curInd,MazeInfo,wrapName) {
+
+            console.log(`Current Size: ${curSize} Current Index: ${curInd}`)
+            console.log("Maze Info: ", MazeInfo[curSize][curInd])
+            const MzPreset = MazeInfo[curSize][curInd]
+            window.currentPreset = MzPreset
+            if (!MzPreset.c1Pos) {
+                MzPreset.c1Pos = [1,1]
+            }
+            if (!MzPreset.prizePos) {
+                MzPreset.prizePos = [1,2]
+            }
+            if (!MzPreset.condiV) {
+                MzPreset.condiV = 'na'
+            }
+            document.getElementById(`mzC1@r`).value = MzPreset.c1Pos[0]
+            document.getElementById(`mzC1@c`).value = MzPreset.c1Pos[1]
+            document.getElementById(`mzPrize@r`).value = MzPreset.prizePos[0]
+            document.getElementById(`mzPrize@c`).value = MzPreset.prizePos[1]
+            document.getElementById(`conType`).value = MzPreset.condiV
+
+            const curMaze = genMaze(MzPreset,wrapName)
+            resize_maze()
+            for (let r = 0; r < curMaze.rows.length; r++) {
+                let row = curMaze.rows[r]
+                for (let c = 0; c < row.cells.length;  c++) {
+                    let cell = row.cells[c]
+                    if (cell.getAttribute('type')==='floor') {
+                        cell.addEventListener('mouseover',function (e) {
+                            document.getElementById('infoBox').innerHTML = `
+                            [ ${r}, ${c} ]
+                            `
+                            let activeEL = document.activeElement;
+                            let sel1 = document.getElementById('conType')
+                            if (activeEL !== document.body && activeEL !== sel1) {
+
+                                let tagName = activeEL.id.split('@')[0]
+                                cell.addEventListener('click',function (e) {
+                                    document.getElementById(`${tagName}@r`).value = r
+                                    document.getElementById(`${tagName}@c`).value = c
+                                    document.getElementById(`${tagName}@r`).dispatchEvent(new Event('change'))
+                                })
+                            }
+                        })
+
+                    }
+                }
+            }
+            // 3 //7 //11
+
+            let oldSub = document.getElementById('submitButton')
+            if (oldSub) {
+                let new_element = oldSub.cloneNode(true);
+                oldSub.parentNode.replaceChild(new_element, oldSub);
+            }
+            document.getElementById('submitButton').addEventListener('click', (e) => {
+                submit2Firebase(e, MzPreset, curSize, curInd)
+            })
+
+            return curMaze
+        }
+
+        function submit2Firebase(e, preset, curSize, curInd) {
+            preset.c1Pos = [parseInt(document.getElementById('mzC1@r').value),parseInt( document.getElementById('mzC1@c').value)]
+            preset.prizePos = [parseInt(document.getElementById('mzPrize@r').value),parseInt( document.getElementById('mzPrize@c').value)]
+            preset.condiV = document.getElementById('conType').value
+
+
+            let updateObj = {};
+            console.log(curInd)
+            updateObj[curInd] = preset
+            console.log(updateObj)
+            window.MazeInfo[curSize][curInd] = preset
+            const status = db.collection('MazeConfig').doc(curSize).update(updateObj)
+            status.then(()=> {
+                document.getElementById('statusTxt').textContent = 'Done!'
+                document.getElementById('statusTxt').style.opacity = '1'
+                document.getElementById('statusTxt').animate([
+                    {opacity: 1},
+                    {opacity: 0}
+                ],{duration:1000,delay:1000,iterations:1,fill: "forwards"})
+            })
+
+        }
+
+        function mazeVChange(e) {
+            const curSize = document.getElementById('curSize').value
+            let curInd = parseInt(document.getElementById('curInd').textContent)
+            let maxN = Object.keys(window.MazeInfo[curSize]).length
+            switch (e.textContent) {
+                case '+':
+                    if (curInd< (maxN-1) ) {
+                        curInd += 1
+                        document.getElementById('curInd').textContent = curInd
+                        genMazeMod(curSize,curInd,window.MazeInfo)
+                    } else {
+                        e.animate([
+                            {backgroundColor: 'whitesmoke', color: '#465878'},
+                            {backgroundColor: 'indianred', color: '#465878'},
+                        ],{duration:500, fill: "backwards", iterations:1})
+                    }
+                    break;
+                case '-':
+                    if (curInd>0) {
+                        curInd -= 1
+                        document.getElementById('curInd').textContent = curInd
+                        genMazeMod(curSize,curInd,window.MazeInfo)
+                    } else {
+                        e.animate([
+                            {backgroundColor: 'whitesmoke'},
+                            {backgroundColor: 'indianred'},
+                        ],{duration:500, fill: "backwards", iterations:1})
+                    }
+                    break;
+                default:
+                    genMazeMod(curSize,curInd,window.MazeInfo)
+            }
+        }
+
+        function updateMazeComp(e) {
+            let tagName;
+            if (e.id) {
+                tagName = e.id.split('@')[0]
+            } else {
+                tagName = e;
+            }
+            const cmp = document.getElementById(tagName)
+            cmp.setAttribute('pos_r',document.getElementById(`${tagName}@r`).value)
+            cmp.setAttribute('pos_c',document.getElementById(`${tagName}@c`).value)
+            resize_maze()
+        }
+
+
+
+        function genMazeUpdate() {
+            ensure_uid_set(5000).then( () => {
+                for (let gi of [10, 15, 20, 25, 30]) {
+                    let gx = {};
+                    for (let i = 0; i < 15; i++) {
+                        const mz = aMazeMe(gi)
+                        dt = {
+                            cells_w: mz.cells_w,
+                            cells_h: mz.cells_h,
+                            maze_array: mz.maze_array,
+                        }
+                        gx[i] = dt
+                    }
+                    db.collection('MazeConfig2').doc(String(gi)).set(gx)
+                    document.getElementById('updateT').textContent += `${gi} done`
+                }
+
+            })
+        }
+    </script>
+    </html>

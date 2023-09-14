@@ -277,6 +277,14 @@ function shuffle(array) {
     return array;
 }
 
+function switchVeil(veil){
+    if (veil) {
+        if (veil.style.display === 'inline') {
+
+        }
+    }
+}
+
 function frac_hack(x, assign_back){
     if (typeof x === 'string' || x instanceof String) {
         if (x.indexOf('.')) {
@@ -346,4 +354,28 @@ function updateInfo(strX) {
         infoButton.setAttribute('iH', strX)
         infoButton.style.animation = '1s ease-in-out infinite hasInfo'
     }
+}
+
+function updateTimer() {
+    const timer = document.getElementById('timer')
+    if (timer) {
+        timer.childNodes[0].childNodes[1].innerHTML = `<strong>${timer.getAttribute('sTimerMin')}</strong>min<strong>${timer.getAttribute('sTimerSec')}</strong>sec`
+        let diffTime =   ms2MinNSec(parseInt(performance.now() - parseInt(timer.getAttribute('initTime'))))
+        console.log(performance.now() - parseInt(timer.getAttribute('sTimerMin')))
+        timer.childNodes[1].childNodes[1].innerHTML = `<strong>${diffTime[0]}</strong>min<strong>${diffTime[1]}</strong>sec`
+    }
+}
+function ms2MinNSec(millis) {
+    let minutes = Math.floor(millis / 60000);
+    let seconds = ((millis % 60000) / 1000).toFixed(0);
+    return [minutes, seconds]
+}
+function resetSkipButton() {
+    let skipButton = document.getElementById("skipButton");
+    let new_element;
+    if (skipButton) {
+        new_element = skipButton.cloneNode(true);
+        skipButton.parentNode.replaceChild(new_element, skipButton);
+    }
+    return new_element
 }
