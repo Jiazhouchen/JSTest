@@ -209,10 +209,9 @@
     <script>
         async function doMaze() {
             document.getElementById('display_element').style.display = 'inline'
-            let [jsPsych,taskProcedure] = await getPracticeProcedure('Maze')
-            jsPsych.run([taskProcedure]);
+            runPracticeProcedure('Maze')
         }
-        doMaze()
+        //configMaze()
         async function configMaze() {
             const MazeInfo = await getMazeConfig()
             window.MazeInfo = MazeInfo;
@@ -252,10 +251,8 @@
                 <p>Condition Type:</p>
                 <select id = 'conType' style="min-width: 100%">
                     <option value="na">Not Specified</option>
-                    <option value="greater">Greater than 10</option>
-                    <option value="lessCAN">Less than 10 (Possible)</option>
-                    <option value="lessNOT">Less than 10 (Not Possible)</option>
-                    <option value="at">At 10</option>
+                    <option value="hard">Hard</option>
+                    <option value="easy">Easy</option>
                 </select>
                 <div id="statusTxt" style="margin-top: auto; opacity: 0">Refreshing...</div>
                 <button id="refreshButton">Refresh</button>
@@ -426,9 +423,9 @@
 
         function genMazeUpdate() {
             ensure_uid_set(5000).then( () => {
-                for (let gi of [10, 15, 20, 25, 30]) {
+                for (let gi of [20]) {
                     let gx = {};
-                    for (let i = 0; i < 15; i++) {
+                    for (let i = 0; i < 30; i++) {
                         const mz = aMazeMe(gi)
                         dt = {
                             cells_w: mz.cells_w,
@@ -437,7 +434,7 @@
                         }
                         gx[i] = dt
                     }
-                    db.collection('MazeConfig2').doc(String(gi)).set(gx)
+                    db.collection('MazeConfig').doc(String(gi)).set(gx)
                     document.getElementById('updateT').textContent += `${gi} done`
                 }
 

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Test for Anna</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto Condensed">
+    <script src="js/jsPsych/jspsych.js"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-html-button-response@1.0.0"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-survey-text@1.0.0"></script>
+    <script src="js/plugin-Test.js"></script>
+    <script src="js/init.js"></script>
+    <script src="js/utility.js"></script>
+    <script src="js/plugin-Gamble.js"></script>
+    <script src="js/plugin-Math.js"></script>
+    <link href="js/jsPsych/jspsych.css" rel="stylesheet" type="text/css" />
+    <link href="css/general.css" rel="stylesheet" type="text/css" />
+</head>
+<style>
+    div {
+        border: 1px solid #73AD21;
+    }
+    .jsPsychDE {
+
+    }
+    .dualWrap {
+        display: flex;
+        justify-content: space-around;
+        flex-direction: column;
+        min-width: 90vw;
+        min-height: 80vh;
+
+    }
+    .taskBlock {
+        display: flex;
+        min-height: 60vh;
+        justify-content: space-around;
+        flex-direction: row;
+    }
+    .taskW {
+        display: flex;
+        justify-content: space-around;
+        flex-direction: column;
+    }
+    .taskDE {
+        display: flex;
+        height: 40vh;
+        width: 40vw;
+    }
+    .controlArea{
+        min-height: 20vh;
+    }
+    .prompt {
+        display: flex;
+        justify-content: center;
+        min-height: 10vh;
+        line-height: 10vh;
+        align-items: center;
+        font-weight: bold;
+        font-size: 3vh;
+    }
+
+
+</style>
+<body>
+    <div class="dualWrap">
+        <div class="prompt" id="prompt">
+            Which task would you like to do?
+            Use F for left and J for right
+        </div>
+        <div class="taskBlock">
+            <div class="taskW">
+                <div class="taskDE" id="taskLeft"></div>
+            </div>
+            <div class="taskW">
+                <div class="taskDE" id="taskRight"></div>
+            </div>
+        </div>
+
+        <div class="controlArea">
+
+        </div>
+    </div>
+</body>
+<script>
+    window.decision='';
+    let mathLeft = [
+        {
+            type: jsPsychMathSimp,
+            equation: "24 + 50 = 74",
+            correctness: true,
+            whereami:'left',
+        },
+    ]
+    let mathRight = [
+        {
+            type: jsPsychMathSimp,
+            equation: "15 + 30 = 55",
+            correctness: false,
+            whereami: 'right',
+        }
+    ]
+
+    let jsPsychLeft = initJsPsych({
+        override_safe_mode: true,
+        display_element: 'taskLeft',
+    })
+
+    const jsPsychRight = initJsPsych({
+        override_safe_mode: true,
+        display_element: 'taskRight',
+    })
+
+
+    jsPsychLeft.run(mathLeft)
+    jsPsychRight.run(mathRight)
+
+    document.addEventListener('keydown', function(e) {
+
+        if (['f','j'].includes(e.key)) {
+            console.log(e.key)
+            window.decision ='left'
+            console.log(decision)
+        }
+    });
+
+
+
+
+</script>
+</html>

@@ -5,7 +5,26 @@
   <title>Test</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto Condensed">
   <script src="js/jsPsych/jspsych.js"></script>
-  <script src="js/plugin-EmoGrade.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-auth.js"></script>
+  <script src="js/firebase.js"></script>
+  <script src="js/init.js"></script>
+  <script src="js/utility.js"></script>
+  <script src="js/plugin-Gamble.js"></script>
+  <script src="js/plugin-Math.js"></script>
+  <script src="js/plugin-TrustGame.js"></script>
+  <script src="js/plugin-RateEmotion.js"></script>
+  <script src="js/plugin-Compete.js"></script>
+  <script src="js/plugin-CrossBoard.js"></script>
+  <script src="js/plugin-Maze.js"></script>
+  <script src="js/plugin-Feeding.js"></script>
+  <script src="js/plugin-Info.js"></script>
+  <script src="js/plugin-Localize.js"></script>
+  <script src="js/table_maze.js"></script>
+  <script src="js/genConditions.js"></script>
+  <script src="js/studyTimeline.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/foobar404/wave.js/dist/bundle.js"></script>
   <link href="js/jsPsych/jspsych.css" rel="stylesheet" type="text/css" />
   <link href="css/general.css" rel="stylesheet" type="text/css" />
 </head>
@@ -14,30 +33,204 @@
   <div class="jsPsychDE" id="display_element"></div>
 </body>
 <script>
+  let PROLIFIC_PID = '3'
   let jsPsych = initJsPsych({
-    override_safe_mode: true,
-    display_element: 'display_element',
-    on_finish: function () {
-      alert('Yo it done')
-    },
+      override_safe_mode: true,
+      display_element: 'display_element',
+      on_finish: (dt) => {
+        let gdt = {};
+        for (let i=0; i<dt.trials.length; i++) {
+          gdt[String(i)] = dt.trials[i]
+        }
+        console.log(gdt)
+        // const status = db.collection('test1').doc('test').set({trial: gdt,})
+        document.getElementById('display_element').innerHTML = `
+                        <div id='msgFIN' style="display: flex; flex-direction: column; justify-content: space-around">
+                            <h1 style="margin: auto;">All done! Thank you for your participation!</h1>
+                            <h1 style="margin: auto;">Please wait and DO NOT CLOSE the browser window, your data is uploading... </h1>
+                        </div>
+                        `
+
+        // status.then(() => {
+          //location.href = `https://app.prolific.com/submissions/complete?cc=CZCB01K5`
+        // })
+        jsPsych.data.addProperties({
+          triggerTiming: window.photonLog,
+          ID: 'jade',
+          session: 'Technical Pilot',
+          performanceOrigin: performance.timeOrigin,
+        })
+        //jsPsych.data.get().localSave('csv', 'data.csv');
+        //jsPsych.data.get().csv()
+        console.log(jsPsych.data.get());
+      },
+      on_close: () => {
+        let dt = jsPsych.data.get();
+        let gdt = {};
+        for (let i=0; i<dt.trials.length; i++) {
+          gdt[String(i)] = dt.trials[i]
+        }
+        //db.collection('test1').doc(PROLIFIC_PID).set(gdt)
+      },
+      on_trial_finish: (dt) => {
+        photonSwitch('trial')
+      }
+
   });
+
+  if (false) {
+    window.doingMEG = 'flash'
+    photonSwitch()
+    jsPsych.run([{
+      type: jsPsychFeeding,
+    }])
+  }
+
   if (false) {
     // here's to test the Gambling Contingency generation.
     console.log(contingWrapGam(18,[0.7],
             ['worse', 'better', 'same'],0.1,3))
   }
+
+  if (false) {
+    db.collection('ProlificCode').doc('Code').get().then((code)=>{
+      console.log(code.data()['p2'])
+    })
+  }
+
   if (false) {
     // here's to test the trust game contingency generation.
-    console.log(trustContin(18,['match', 'worse'],3))
+    getMazeConfig().then((MazeInfo)=> {
+      let out = fixedContingency(MazeInfo)
+      console.log(out)
+      jsPsych.run([out[0],out[1]])
+    })
+
 
   }
+  ensure_uid_set().then((uid)=>{
+
+  })
   if (true) {
-    document.body.innerHTML = initDemoEmoGrade()
-    let thing = {
-      type: jsPsychEmoGrade,
-      iti: 500,
-      audio: '',
-    }
+    //generate emotion rating pratice here:
+    window.doingMEG = 'flash'
+    window.photonLog = [];
+    photonSwitch()
+    let storyInfo = getStoryInfo()
+
+    stInfo = storyInfo['1']['2']
+
+    let story = [
+      {
+        type: jsPsychInfo,
+        countDown: 0,
+        majorMsg: 'Story: '+ stInfo.pName,
+        postMajor: 'Thank you for listening!',
+        minorMsg: "Press 'enter' or 'space' to start listening.",
+        audio: 'audio/'+stInfo.name+'.wav',
+      }
+    ]
+    let local = [
+      {
+        type: jsPsychLocalizer,
+        localType: 'visual',
+      }
+    ]
+    let emoRate = [
+      {
+        type: jsPsychRateEmotion,
+        ShowEmo: true,
+        emotion: "GoEmo",
+        respType: 'key',
+      }
+    ]
+    let math = [
+      {
+        type: jsPsychMath,
+        difficulty: 'easy',
+        operationLevel: 1,
+        whichSide: 'left',
+        oldFb: true,
+        maxRespTime: 10000,
+      },
+    ]
+    let gamble = [
+      {
+        type: jsPsychGamble,
+        whichSide: 'left',
+        switch: true,
+        win: true,
+        opt: {
+          fixed: -1,
+          gam_1: -5,
+          gam_2: 2 ,
+        },
+        iti: 0,
+        oldFb: true,
+      }
+    ]
+    let trust = [
+      {
+        type: jsPsychTrust,
+        displayBio: 0,
+        share: true,
+        player: 2,
+        pts: 5,
+        difficulty: 'hard',
+        twist: true,
+        oldFb: true,
+      },
+    ]
+    let maze;
+    getMazeConfig().then((MazeInfo)=> {
+      maze = [{
+        type: jsPsychMaze,
+        preset: MazeInfo['20'][3],
+        reverse: true,
+        show_step: false,
+        limit: 'time',
+        timeLimit: 10000,
+        stopAtBox: true,
+        oldFb: true,
+      }
+      ]
+       jsPsych.run(local)
+
+    })
+    //jsPsych.run(maze)
+  }
+
+  if (false) {
+    //generate emotion rating pratice here:
+    window.doingMEG = 'switch'
+    photonSwitch()
+    jsPsych.run([
+      {
+        type: jsPsychMath,
+        whichSide: 'left',
+        digitLength: 2,
+        operationLevel: 1,
+        maxRespTime: 999999,
+      },
+    ])
+
+
+  }
+
+  if (false) {
+    getMazeConfig().then((MazeInfo)=> {
+      let thing = {
+        type: jsPsychMaze,
+        preset: MazeInfo['20'][0],
+        reverse: true,
+        show_step: false,
+        limit: 'time',
+        timeLimit: 10000,
+        stopAtBox: true,
+      }
+      jsPsych.run([thing])
+    })
+
   }
 
 </script>

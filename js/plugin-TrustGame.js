@@ -10,7 +10,7 @@
 jsPsychTrust = (function(jspsych) {
 
     const info = {
-        name: 'compete',
+        name: 'Trust',
         description: '',
         parameters: {
             displayBio: {
@@ -21,13 +21,21 @@ jsPsychTrust = (function(jspsych) {
                 type: jspsych.ParameterType.INT,
                 default: true,
             },
+            difficulty: {
+                type: jspsych.ParameterType.STRING,
+                default: '',
+            },
+            twist: {
+                type: jspsych.ParameterType.BOOL,
+                default: '',
+            },
             player: {
                 type: jspsych.ParameterType.INT,
                 default: 0,
             },
             pts: {
                 type: jspsych.ParameterType.INT,
-                default: 10,
+                default: 5,
             },
             practice: {
                 type: jspsych.ParameterType.BOOL,
@@ -35,7 +43,15 @@ jsPsychTrust = (function(jspsych) {
             },
             maxRespTime: {
                 type: jspsych.ParameterType.INT,
-                default: 5000,
+                default: 4000,
+            },
+            animate: {
+                type: jspsych.ParameterType.BOOL,
+                default: false,
+            },
+            oldFb: {
+                type: jspsych.ParameterType.BOOL,
+                default: true,
             }
         }
     }
@@ -44,37 +60,40 @@ jsPsychTrust = (function(jspsych) {
 
         constructor(jsPsych) {
             this.jsPsych = jsPsych;
-            this.timing = {
-                fade: 0,
-                intro: 200,
-                selDur: 2000,
-                fbDur:2000,
-                iti:0,
+            this.timing = initTiming()
+            this.keyMap = new keyMap()
+            this.data = initData('Trust')
+
+            this.keys = {
+                share: 'left',
+                keep: 'right',
             }
         }
 
         trial(display_element, trial) {
-            trial.jsPsych = this.jsPsych
+            this.jsPsych.pluginAPI.clearAllTimeouts()
+            this.jsPsych.pluginAPI.cancelAllKeyboardResponses()
             window.onbeforeunload = function () {
                 window.scrollTo(0, 0);
             }
-            resetSkipButton()
-            document.getElementById('skipButton').addEventListener('click',()=> {
-                alert("Skipping entire task block")
-                trial.jsPsych.endCurrentTimeline()
-                trial.jsPsych.finishTrial()
-                trial.jsPsych.pluginAPI.cancelAllKeyboardResponses()
-                trial.jsPsych.pluginAPI.clearAllTimeouts()
-            })
+            this.data.initTime = performance.now()
+            if (trial.maxRespTime > 0) {
+                this.timing.maxRespTime = trial.maxRespTime
+            }
+            this.data.difficulty = trial.difficulty
+            this.data.twist = trial.twist
+            this.data.contingency = {
+                player: get_bios(trial.player),
+                partnerResp: trial.share?'share':'keep',
+                ptsOffer: trial.pts,
+            }
+            this.data.side = 'left' //it's always left share;
+            this.oldFb = trial.oldFb
             display_element.innerHTML = this.initTrustPage()
-            updateInfo('Originally, the trust game should have some brief description on the partners.' +
-                'However, after consideration, the amount of text might influence our analysis, similar to the ELI5 task. ' +
-                'Therefore, instead of a description of the partners. Now we will present a summary statistics of how much they had shared.' +
-                'This way, we still have the "good" partner and "bad" partner although still not exactly the same. ')
             this.drawTrustBio(display_element,trial)
         }
 
-        initTrustPage(display_element, trial) {
+        initTrustPage() {
             let html = ''
             html += `
             <style>
@@ -85,8 +104,7 @@ jsPsychTrust = (function(jspsych) {
                     background-color: #f2f1f0;
                     width: 100%;
                     height: 10%;
-                    border-radius: 20px 20px 0px 0px;
-                    transition-duration: 1s;
+                    border-radius: 20px 20px 0 0;
                 }
                 div.profile {
                     position: absolute;
@@ -101,14 +119,12 @@ jsPsychTrust = (function(jspsych) {
                     justify-content: center;
                     align-items: center;
                     overflow: hidden;
-                    transition-duration: 1s;
                 }
                 img.profile {
                     flex-shrink: 0;
                     min-height: 100%;
                     min-width: 100%;
                     scale: 0.9;
-                    transition-duration: 1s;
                 }
                 div.bioBox {
                     position: absolute;
@@ -123,7 +139,6 @@ jsPsychTrust = (function(jspsych) {
                     justify-content: center;
                     align-items: center;
                     overflow: hidden;
-                    transition-duration: 0s;
                 }
                 
                 h1.profile {
@@ -132,7 +147,6 @@ jsPsychTrust = (function(jspsych) {
                     left: 17%;
                     font-size: 4vw;
                     color: #73AD21;
-                    transition-duration: 1s;
                 }
         
                 div.bannerButton {
@@ -145,45 +159,63 @@ jsPsychTrust = (function(jspsych) {
                     padding-top: 20px;
                     box-sizing: border-box;
                 }
-                div.npText {
+                .npText {
                     position: absolute;
-                    height: 10%;
-                    width: 15%;
-                    top: 17%;
+                    display: flex;
+                    top: 30%;
                     left: 25%;
-                    text-align: left;
-                    font-size: 2vw;
-                    font-weight: bold;
-                    opacity: 0%;
+                    opacity: 0;
+                }
+                .npText * {
+                    margin-top: auto;
+                    margin-bottom: auto;
+                    font-size: 2rem;
                 }
                 
-                div.qText {
+                .qText {
                     position: absolute;
-                    height: 5%;
-                    width: 70%;
-                    top: 45%;
+                    display: flex;
+                    justify-content: space-around;
+                    width: 80%;
+                    top: 50%;
                     left: 10%;
-                    text-align: left;
-                    font-size: 5vw;
-                    opacity: 0%;
+                    opacity: 0;
                 }
-                div.qText strong {
+                .qText * {
+                    margin-top: auto;
+                    margin-bottom: auto;
+                    font-size: 6rem;
+                }
+                .qText strong {
                     color: indianred;        
                 }
-                div.choiceBox {
+                .arrowBoxes {
                     position: absolute;
                     bottom: 10%;
-                    height: 15%;
-                    width: 20%;
-                    font-size: 4vw;
+                    left: 10%;
+                    width: 80%;
+                    display: flex;
+                    flex-direction: row;
+                    justify-content: space-around;
+                    font-size: 3vmin;
                     font-weight: bolder;
-                    padding-top: 2.5vw;
-                    box-sizing: border-box;
-                    border-radius: 20px;
+                    align-items: center;
+                }
+                .choiceBox {
+                    display: flex;
+                    justify-content: space-around;
+                    align-items: center;
+                    border-radius: 10px;
+                    background-color: whitesmoke;
+                    height: 5vw;
+                    aspect-ratio: auto 3 / 1;
                     box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
                     opacity: 0;
                 }
-                div.chatBox {
+                .choiceBox * {
+                    margin: auto;
+                }
+                .chatBox {
                     position: absolute;
                     top: 5%;
                     right: 10%;
@@ -196,40 +228,24 @@ jsPsychTrust = (function(jspsych) {
                     box-sizing: border-box;
                     opacity: 0;
                 }
-                div.fb_box {
-                    font-family: "Roboto Condensed", sans-serif;
-                    position: absolute;
-                    padding-top: 5%;
-                    top: 20%;;
-                    left: 25%;
-                    width: 50%;
-                    height: 10%;
-                    border-radius: 20px;
-                    opacity: 0;
-                    transition-timing-function: ease-in;
-                    font-size: 5vw;
-                    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
-                }
+                
                 
                 
                 
             </style>
             <body>
-              
+            <div class='wrapLong' id="trustWrap"></div>
+            <div class='veil' id = 'veil'></div>
             </body>
             `
             return html
         }
 
         drawTrustBio(display_element, trial) {
-            const wrap = document.createElement('div')
-            wrap.className = 'wrap'
-            wrap.id = 'trustWrap'
+            const wrap = document.getElementById('trustWrap')
             wrap.style.backgroundColor = get_bios(0).colorLight
 
-            const veil = document.createElement('div')
-            veil.className = 'veil'
-            veil.id = 'veil'
+            const veil = document.getElementById('veil')
 
             const banner = document.createElement('div')
             banner.className = 'banner'
@@ -305,202 +321,263 @@ jsPsychTrust = (function(jspsych) {
             wrap.appendChild(pf_picc)
             wrap.appendChild(pf_name)
             wrap.appendChild(bioBox)
-            display_element.appendChild(wrap)
-            display_element.appendChild(veil)
+
             if (trial.displayBio === 0) {
                 startTrust.click()
+            } else {
+                veil.style.display = 'none'
             }
 
-            veil.style.display = 'inline'
-            veil.style.backdropFilter = 'blur(30px)'
-            veil.style.webkitBackdropFilter = 'blur(30px)'
-
-            const stat1 = veil.animate([
-                {backdropFilter: 'blur(30px)',webkitBackdropFilter: 'blur(30px)'},
-                {backdropFilter: 'none',webkitBackdropFilter: 'none'},
-            ], {duration:trial.unveilT,iterations: 1,delay:0,fill: 'forwards'}).finished.then(
-                ()=>{veil.style.display='none'}
-            )
 
 
         }
 
         drawTrustGame(display_element, trial) {
+            document.getElementById('veil').style.display = 'flex'
             const wrap = document.getElementById('trustWrap')
             // hide all the bio-element so when it's called, it will always start fresh
             document.getElementById(`bB-${trial.player + 1}`).click()
             wrap.style.backgroundColor = '#f2f1f0'
             document.getElementById('banner').style.opacity = '0%'
             document.getElementById('bioBox').style.opacity = '0%'
-            const ani1_para = {duration:700,iterations: 1,delay:0,fill: 'forwards'}
-            const ani2_para = {duration:200,iterations: 1,delay:800,fill: 'forwards'}
+
             const pfpic = document.getElementById('pf_pic')
-            pfpic.animate([
-                {
-                    height: '60%', width: '20%', top: '15%', left: '10%',
-                },{
-                    height: '30%', width: '12%', top: '5%', left: '10%',
-                }],ani1_para)
-            pfpic.firstElementChild.animate([
-                {
-                    scale: '0.9',
-                },{
-                    scale: '0.4',
-                }],ani1_para)
             const pfName = document.getElementById('pf_name')
-            pfName.animate([
-                {
-                    left: '17%',  bottom: '5%',
-                },{
-                    left: '25%', bottom: '58%',
-                }],ani1_para)
-            ani2_para.delay = 700
+            //pfName.textContent += `:
+
             const npText=document.createElement('div')
-            npText.textContent = 'Now Playing With ...'
+            npText.innerHTML = `<span>Share rate: <strong>${get_bios(trial.player).shareP}%</strong></span>`
             npText.className = 'npText'
             npText.style.color = get_bios(trial.player).color
             wrap.appendChild(npText)
-            npText.animate([{opacity: '0%'},{opacity: '100%'}],ani1_para)
 
             const offerText = document.createElement('div')
-            offerText.innerHTML = `For <strong>${trial.pts}</strong> points`
+            offerText.innerHTML = `<span><strong>${trial.pts}</strong> points</span>`
             offerText.className = 'qText'
             offerText.id = 'offerText'
             wrap.appendChild(offerText)
-            offerText.animate([{opacity: '0%'},{opacity: '100%'}],ani2_para)
 
             const qText=document.createElement('div')
             qText.innerHTML = 'Would you <b>SHARE</b> or <b>KEEP</b>?'
             qText.className = 'qText'
             qText.id = 'qText'
             qText.style.top = '60%'
-            wrap.appendChild(qText)
-            qText.animate([{opacity: '0%'},{opacity: '100%'}],ani2_para)
+            // wrap.appendChild(qText)
 
-            const f_box = document.createElement('div')
-            f_box.className = 'choiceBox'
-            f_box.id = 'f_box'
-            f_box.textContent = 'SHARE (F)'
-            f_box.style.left = '10%'
-            f_box.style.backgroundColor = get_bios(trial.player).colorLight
+            const ChoiceRow = document.createElement('div')
+            ChoiceRow.className = 'arrowBoxes'
 
-            ani2_para.delay += 400
-            const j_box = document.createElement('div')
-            j_box.className = 'choiceBox'
-            j_box.id = 'j_box'
-            j_box.textContent = 'KEEP (J)'
-            j_box.style.right = '10%'
-            j_box.style.backgroundColor = get_bios(trial.player).colorLight
-            wrap.appendChild(f_box)
-            wrap.appendChild(j_box)
-            f_box.animate([{opacity: '0%'},{opacity: '100%'}],ani2_para)
-            const opt_done = j_box.animate([{opacity: '0%'},{opacity: '100%'}],ani2_para).finished
 
-            const chat_box = document.createElement('div')
-            chat_box.className = 'chatBox'
-            chat_box.id = 'chatBox'
-            chat_box.style.backgroundColor = get_bios(trial.player).colorLight
-            chat_box.style.borderColor = get_bios(trial.player).color
-            chat_box.innerHTML = `${get_bios(trial.player).name} <b>Shared</b>!`
-            wrap.appendChild(chat_box)
+            const left_box = document.createElement('div')
+            left_box.className = 'choiceBox'
+            left_box.id = 'left_box'
+            left_box.textContent = 'SHARE (⇦)'
+            left_box.style.left = '10%'
+            //arrowleft_box.style.backgroundColor = get_bios(trial.player).colorLight
+
+
+            const right_box = document.createElement('div')
+            right_box.className = 'choiceBox'
+            right_box.id = 'right_box'
+            right_box.textContent = 'KEEP (⇨)'
+            right_box.style.right = '10%'
+            //arrowright_box.style.backgroundColor = get_bios(trial.player).colorLight
+            ChoiceRow.appendChild(left_box)
+            ChoiceRow.appendChild(right_box)
+            wrap.appendChild(ChoiceRow)
+
+
+            let opt_done;
+            if (trial.animate === true) {
+                const ani1_para = {duration:700,iterations: 1,delay:0,fill: 'forwards'}
+                const ani2_para = {duration:200,iterations: 1,delay:800,fill: 'forwards'}
+                pfpic.animate([
+                    {
+                        height: '60%', width: '20%', top: '15%', left: '10%',
+                    },{
+                        height: '30%', width: '12%', top: '5%', left: '10%',
+                    }],ani1_para)
+                pfpic.firstElementChild.animate([
+                    {
+                        scale: '0.9',
+                    },{
+                        scale: '0.4',
+                    }],ani1_para)
+
+                pfName.animate([
+                    {
+                        left: '17%',  bottom: '5%',
+                    },{
+                        left: '25%', bottom: '70%',
+                    }],ani1_para)
+                ani2_para.delay = 700
+
+                npText.animate([{opacity: '0%'},{opacity: '100%'}],ani1_para)
+
+
+                offerText.animate([{opacity: '0%'},{opacity: '100%'}],ani2_para)
+
+
+                qText.animate([{opacity: '0%'},{opacity: '100%'}],ani2_para)
+
+                ani2_para.delay += 400
+
+                right_box.animate([{opacity: '0%'},{opacity: '100%'}],ani2_para)
+                opt_done = left_box.animate([{opacity: '0%'},{opacity: '100%'}],ani2_para).finished
+            } else {
+                pfpic.style.height = '30%'
+                pfpic.style.width = '12%'
+                pfpic.style.top = '5%'
+                pfpic.style.left = '10%'
+                pfpic.style.scale = '0.9'
+                pfpic.firstElementChild.style.scale = '0.4'
+
+                pfName.style.left = '25%'
+                pfName.style.bottom = '70%'
+
+                npText.style.opacity = '100%'
+                offerText.style.opacity = '100%'
+                qText.style.opacity = '100%'
+                left_box.style.opacity = '100%'
+                right_box.style.opacity = '100%'
+
+                opt_done = resolveAfter(this.timing.init,'',this.jsPsych)
+            }
+
+
 
             opt_done.then(() => {
-                trial.initTime = performance.now()
-                const tKR = this.jsPsych.pluginAPI.getKeyboardResponse({
+                document.getElementById('veil').style.display = 'none'
+                photonSwitch('trust-stim')
+                this.data.stimOnset = performance.now()
+                this.jsPsych.pluginAPI.getKeyboardResponse({
                     callback_function: (e) => {
-                        this.jsPsych.pluginAPI.cancelAllKeyboardResponses()
                         this.drawTrustFeedback(e,display_element,trial)
                     },
-                    valid_responses: ['j','J','f','F'],
+                    valid_responses: this.keyMap.allowedKeys(['left','right']),
                     rt_method: 'performance',
                     persist: false,
                     allow_held_key: false
                 });
+                this.jsPsych.pluginAPI.setTimeout(()=> {
+                    this.drawTrustFeedback(undefined,display_element,trial)
+                },this.timing.maxRespTime)
             })
 
 
 
         }
 
-        drawTrustFeedback(e,display_element,trial) {
-            console.log(e)
-            let dt;
+        drawTrustFeedback(e) {
+            photonSwitch('trust-resp')
+            this.data.keyPressOnset = performance.now()
+            this.jsPsych.pluginAPI.cancelAllKeyboardResponses()
+            this.jsPsych.pluginAPI.clearAllTimeouts()
+            let ani1;
             if (e) {
-                dt = e;
+                this.data.key = this.keyMap.getAction(e.key.toLowerCase())
+                this.data.rt = e.rt
+                this.data.respType = this.data.key === this.keys.share?'share':'keep'
+
+                ani1 = document.getElementById(`${this.data.key}_box`).animate([
+                    {backgroundColor: 'whitesmoke', },
+                    {backgroundColor:'#eda532', offset:0.2,},
+                    {backgroundColor:'#eda532',},
+                ],{
+                    duration:this.timing.selDur,iterations: 1,delay:0,fill: 'forwards'
+                }).finished
             } else {
-                dt = {
-                    key: "",
-                    rt:  "",
-                }
-            }
-            dt.initTime = trial.initTime
-            dt.resp = dt.key==='j'?'share':'keep'
-            dt.respPartner = trial.share?'share':'keep'
-            dt.ptOffer = trial.pts;
-            dt.ptWon = trial.pts;
-            const a1c = {duration:300,iterations: 1,delay:0,fill: 'forwards'}
-            const a2c = {duration:100,iterations: 1,delay:0,fill: 'forwards'}
-            document.getElementById('qText').animate([{opacity: '100%'},{opacity: '0%'}],a1c)
-            document.getElementById('offerText').animate([{opacity: '100%'},{opacity: '0%'}],a1c)
-            const ani1 =document.getElementById(`${e.key}_box`).animate([{
-                backgroundColor:get_bios(trial.player).colorLight, scale: '1',
-            },{
-                backgroundColor:get_bios(trial.player).color, scale: '1.3',
-            }],{
-                duration:300,iterations: 1,delay:0,fill: 'forwards'
-            }).finished
-            if (!trial.share) {
-                document.getElementById('chatBox').style.backgroundColor = '#e0e0e0'
-                document.getElementById('chatBox').style.borderColor = '#c0c1c2'
-                document.getElementById('chatBox').innerHTML=`${get_bios(trial.player).name} <b>Kept</b>!`
-            }
-            ani1.then(() => {
-                let ani2 = document.getElementById('chatBox').animate([
-                    {opacity: '0%', scale: '1'},
-                    {opacity: '100%', scale: '1.1'},
-                    {opacity: '100%', scale: '1'}
-                ],{duration:100,iterations: 1,delay:0,fill: 'forwards'}).finished
-                ani2.then(()=>{
-                    const ptBox = document.createElement('div')
-                    ptBox.className = 'fb'
-                    if (e.key === 'f' && trial.share) {
-                        dt.ptWon = 2 * trial.pts
-                        ptBox.style.backgroundColor = '#acdb86'
-                        ptBox.innerHTML = `<h1>Won Double</h1><p><strong>${trial.pts * 2}</strong> pts</p>`
-                    } else if (e.key === 'f' && !trial.share) {
-                        dt.ptWon = 0
-                        ptBox.style.backgroundColor = '#db9a86'
-                        ptBox.innerHTML = `<p>You won <strong>nothing</strong><p>!`
-                    } else if (e.key === 'j') {
-                        ptBox.style.backgroundColor = '#d1d1d1'
-                        ptBox.innerHTML = `<h1>Safe Option</h1> <p>You got <strong>${trial.pts}</strong> pts.</p>`
-                    } else if (e.key === '') {
-                        dt.ptWon = 0
-                        ptBox.style.backgroundColor = '#d1d1d1'
-                        ptBox.innerHTML = `No response`
-                        dt.resp = ''
-                    }
-                    document.getElementById('veil').appendChild(ptBox)
-                    this.jsPsych.pluginAPI.setTimeout(()=> {
-                        document.getElementById('veil').style.display = 'flex'
-                        document.getElementById('veil').animate([
-                            {opacity: '0%'},
-                            {opacity: '100%'},
-                        ],{duration:this.timing.fade,iterations: 1,delay:this.timing.selDur,fill: 'forwards'})
-                        ptBox.style.opacity = '100%'
-                        ptBox.animate([{
-                            opacity: '100%'
-                        },{
-                            opacity: '0%'
-                        }],{duration:this.timing.fade,delay:this.timing.fbDur,fill:"forwards"}).finished.then(()=>{
-                            trial.jsPsych.finishTrial(dt)
-                        })
+                document.getElementById('trustWrap').innerHTML = ''
+                ani1 = new Promise((resolve) => {
+                    this.jsPsych.pluginAPI.setTimeout( () => {
+                        resolve(true)
                     }, this.timing.selDur)
+                })
+            }
 
+            ani1.then(() => {
+                const veil = document.getElementById('veil')
+                let uChoice, cfChoice, cfPoints, cSn
+                let noResp = false
+                if (this.data.respType === 'share' && this.data.contingency.partnerResp === 'share') {
+                    // both shared
+                    this.data.pts = 2 * this.data.contingency.ptsOffer
+                    uChoice = 'Share'
+                    cfChoice = 'Keep'
+                    cfPoints = this.data.contingency.ptsOffer
+                    cSn = 0
+                    this.data.fb = 'share-share'
+                } else if (this.data.respType === 'share' && this.data.contingency.partnerResp === 'keep') {
+                    // share / kept
+                    this.data.pts = 0
+                    uChoice = 'Share'
+                    cfChoice = 'Keep'
+                    cfPoints = this.data.contingency.ptsOffer
+                    cSn = 1
+                    this.data.fb = 'share-keep'
+                    // <div >${get_bios(trial.player).name} won ${trial.pts} pts</div>
+                } else if (this.data.respType === 'keep') {
+                    // kept / whatever
+                    this.data.pts = this.data.contingency.ptsOffer
+                    uChoice = 'Keep'
+                    cfChoice = 'Share'
+                    cSn = 2
+                    if (this.data.contingency.partnerResp === 'share') {
+                        cfPoints = 2 * this.data.contingency.ptsOffer
+                        this.data.fb = 'keep-share'
+                    } else {
+                        cfPoints = 0
+                        this.data.fb = 'keep-keep'
+                    }
 
+                    //<div >${get_bios(trial.player).name} won ${0} pts</div>
+                } else if (this.data.key === '') {
+                    // no response
+                    this.data.pts = -10
+                    uChoice = 'did not respond'
+                    cSn = 3
+                    if (this.data.contingency.partnerResp === 'share') {
+                        cfChoice = 'Share'
+                        cfPoints = 2 * this.data.contingency.ptsOffer
+                        this.data.fb = 'noresp-share'
+                    } else {
+                        cfChoice = 'Keep'
+                        cfPoints = this.data.contingency.ptsOffer
+                        this.data.fb = 'noresp-keep'
+                    }
+                    noResp = true
+                }
 
+                const ptBox = standardFeedback(uChoice.toUpperCase(),this.data.pts,
+                    cfChoice.toUpperCase(),cfPoints,
+                    noResp,cSn,'',false,this.oldFb)
+                ptBox.id = 'ptBox'
+                //ptBox.style.backgroundColor = bgColor
+                veil.appendChild(ptBox)
+                veil.style.display = 'flex'
+                veil.style.opacity = '100%'
+
+                const fb1 = resolveAfter(this.timing.preFb,'',this.jsPsych)
+                fb1.then(()=> {
+                    ptBox.style.opacity = '100%'
+                    photonSwitch('trust-fbOn')
+                    this.data.fbOnset = performance.now()
+
+                    this.jsPsych.pluginAPI.setTimeout(()=> {
+                        this.data.endTime = performance.now()
+                        this.data.duration = this.data.endTime - this.data.initTime
+                        this.jsPsych.pluginAPI.clearAllTimeouts()
+                        this.jsPsych.pluginAPI.cancelAllKeyboardResponses()
+                        this.jsPsych.finishTrial(this.data)
+                    }, this.timing.fbDur)
 
                 })
+
+
+
+
+
+
             })
 
         }
@@ -522,24 +599,24 @@ function get_bios(num) {
     const players = [
         {
             name: 'Jeff',
-            color: '#94bf26',
-            colorLight: '#cdd1b4',
-            shareP: 100,
-            bio: "depreciated",
+            color: '#ad7547',
+            colorLight: '#e0cdbc',
+            shareP: 88,
+            bio: "High",
         },
         {
             name: 'Matt',
             color: '#66bbcc',
             colorLight: '#c8d8db',
-            shareP: 50,
-            bio: "depreciated",
+            shareP: 55,
+            bio: "Mid",
         },
         {
             name: 'Alex',
             color: '#4a26bf',
             colorLight: '#bab5c9',
-            shareP: 20,
-            bio: "depreciated",
+            shareP: 12,
+            bio: "Low",
         },
     ]
 
@@ -553,9 +630,7 @@ function get_bios(num) {
 
 function trustContin(t, trustType, emoInt) {
     const trustBio = get_bios()
-    console.log(trustBio)
     let tPerC = Math.ceil( t / (trustType.length * trustBio.length))
-    console.log(tPerC)
     let allTrialT = [];
     let totalTCount = 0;
     for (let t = 0; t < trustType.length; t ++) {
@@ -585,6 +660,9 @@ function trustContin(t, trustType, emoInt) {
     }
     allTrialT = shuffle(allTrialT);
     allTrialT = flatten_array(allTrialT)
-    allTrialT[0].displayBio = 1;
+    if (emoInt !== 1) {
+        allTrialT[0].displayBio = 1;
+    }
+
     return allTrialT
 }

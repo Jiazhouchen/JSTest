@@ -359,24 +359,7 @@ function updatePerformanceGam(pS, dt) {
     return pS.sort(function(a, b){return b.pS - a.pS});
 }
 
-function calScoreMath(dt) {
-    let score;
-    let dScore = (dt.equation.length-4);
-    if (dt.equation.split(' ').includes('0') ) {
-        dScore = 0;
-    } else if (dt.equation.split(' ').includes('1') ) {
-        dScore = 1;
-    }
-    if (dt.rt === '') {
-        score = 0
-    } else {
-        score =  (5 - (parseInt(dt.rt) / 1000)) +
-            ( (dt.actualCor?1:0)* dScore)*5/10+
-            ( (dt.actualCor?1:0)* dScore*(dt.operation==='×' ? 1:0) * 5/10)
-    }
 
-    return Math.round((score + Number.EPSILON) * 5)
-}
 
 function updatePerformanceMath(pS, dt) {
     updateInfo('For math, the performance score is calculated as: '+

@@ -93,6 +93,7 @@ jsPsychEmoGrade= (function(jspsych) {
                     document.getElementById('egSuggestBox').remove()
                 }
             })
+
             document.getElementById('egInput1').addEventListener('click',this.validateInput)
             document.getElementById('egInput1').addEventListener('change',this.confirmSelection)
             document.getElementById('egInput1').addEventListener('keyup',this.confirmSelection)
@@ -126,6 +127,7 @@ jsPsychEmoGrade= (function(jspsych) {
                     margin: 2% 10% 0 10%;
                     height: 90%;
                 }
+               
                 .egContent p {
                     font-size: 3vmin;
                     margin-bottom: 5%;

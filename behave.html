@@ -6,12 +6,9 @@
     <meta charset="UTF-8">
     <title>Main Study Page</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto Condensed">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Oswald">
     <script src="js/jsPsych/jspsych.js"></script>
     <script src="js/jsPsych/plugin-preload.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-auth.js"></script>
-    <script src="js/firebase.js"></script>
     <script src="js/init.js"></script>
     <script src="js/utility.js"></script>
     <script src="js/plugin-Gamble.js"></script>
@@ -34,10 +31,12 @@
         <div id="msgBox" class="msgBox">
 
             <h1>Welcome to the study</h1>
-            <p>This is the behavioral only version. It is set to be piloted soon.</p>
-            <p>Currently, it does not contain any story listening or breaks.</p>
-            <p>Each task will have 3 trial per conditions. This number WILL CHANGE. IT IS NOT FINAL!</p>
-            <p>Practice will be given for actual participants.</p>
+            <p>In this study, you will play some games and answer questions about how you are feeling.</p>
+            <p>With each game you will earn a number of points, which is dependent on your performance.</p>
+            <p>You will have a chance to practice the games you will play in the study.</p>
+            <p>Keyboard with arrow keys are needed for all the games. Please ensure that you have such keys.</p>
+            <p>When you are ready, please click 'Start' button to begin.</p>
+
         </div>
         <div id="optionRow" class="optionRow" style="justify-content: space-around;">
             <button id = 'startButton'>Start</button>
@@ -47,23 +46,11 @@
 </body>
 <script>
     const urlPara = new URLSearchParams(window.location.search)
-    getMazeConfig().then((MazeInfo)=> {
-        let jsPsych = initJsPsych({
-            override_safe_mode: true,
-            display_element: 'display_element',
-            MazeInfo: MazeInfo,
-            on_finish: () => {
-                document.getElementById('display_element').style.display = 'none'
-                alert('ALL DONE!')
-            }
-        });
-        let taskProcedure = [];
+
+    document.getElementById('startButton').addEventListener('click', function () {
+        location.href = "instruction.html"+`?tlType=behave`;
     })
 
-    function genBehavContin(jsPsych) {
-        jsPsych.data.addProperties({pS: initPs(10,5)});
-
-    }
 
 </script>
 </html>

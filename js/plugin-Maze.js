@@ -1,4 +1,4 @@
-var jsPsychMaze = (function (jspsych) {
+const jsPsychMaze = (function (jspsych) {
     'use strict';
     //
     const info = {
@@ -30,6 +30,23 @@ var jsPsychMaze = (function (jspsych) {
                 type: jspsych.ParameterType.BOOL,
                 description: 'to terminate at box or not',
                 default: true,
+            },
+            reverse: {
+                type: jspsych.ParameterType.BOOL,
+                description: 'to reverse the points earning scheme or not',
+                default: false,
+            },
+            difficulty: {
+                type: jspsych.ParameterType.STRING,
+                default: '',
+            },
+            twist: {
+                type: jspsych.ParameterType.BOOL,
+                default: '',
+            },
+            oldFb: {
+                type: jspsych.ParameterType.BOOL,
+                default: false,
             }
 
         }
@@ -46,39 +63,23 @@ var jsPsychMaze = (function (jspsych) {
     class MazePlugIn {
         constructor(jsPsych) {
             this.jsPsych = jsPsych;
-            this.timing = {
-                fade: 0,
-                movement: 200,
-                eosPause: 1000,
-                boxZoom: 500,
-                fbDur: 2000,
-            };
+            this.timing = initTiming()
+            this.timing.eosDur = 500
+            this.timing.movement = 200
+            this.timing.boxZoom = 500
+            this.keyMap = new keyMap()
+            this.data = initData('Maze')
+            this.trialComplete = false
         }
         trial(display_element, trial) {
-            trial.jsPsych = this.jsPsych;
             this.jsPsych.pluginAPI.cancelAllKeyboardResponses()
             this.jsPsych.pluginAPI.clearAllTimeouts()
+            this.data.initTime = performance.now()
             // Display HTML.
-            let keycount = 0;
+            this.data.difficulty = trial.difficulty
+            this.data.twist = trial.twist
+            this.oldFb = trial.oldFb
             display_element.innerHTML = this.initMazePage(display_element,trial);
-            updateInfo("The Maze task now has static maze with configuration " +
-                "saved in Google FireStore. " +
-                "This ensures that all participants receives the same stimulus." +
-                "The configuration has a size of 11/15/21/25/31 (must be odd numbers)" +
-                "Each has 15 variations for different choices.")
-
-            let skipButton = resetSkipButton()
-            if (skipButton) {
-                skipButton.addEventListener('click',()=> {
-                    alert("Skipping entire task block")
-                    trial.jsPsych.endCurrentTimeline()
-                    trial.jsPsych.finishTrial()
-                    trial.jsPsych.pluginAPI.cancelAllKeyboardResponses()
-                    trial.jsPsych.pluginAPI.clearAllTimeouts()
-                })
-            }
-
-            console.log(trial.preset)
             if (trial.preset === 0) {
                 trial.preset = {
                     cells_w: 25,
@@ -87,136 +88,60 @@ var jsPsychMaze = (function (jspsych) {
                     prizePos: [1,2],
                 }
             }
+
+            if (!trial.preset.prizePos) {
+                trial.preset.prizePos = trial.preset.pricePos
+            }
+
+            this.data.contingency = {
+                size: trial.preset.cells_h,
+                initPos: trial.preset.c1Pos,
+                giftPos: trial.preset.prizePos,
+                condiV: trial.preset.condiV,
+                limit: trial.limit,
+                reverse: trial.reverse,
+                showStep: trial.showStep,
+                stopAtBox: trial.stopAtBox,
+                timeLimit: trial.timeLimit,
+            }
+
             const curMaze = genMaze(trial.preset,'mazeWrap')
             curMaze.id = 'curMaze';
-
             const c1 = document.getElementById('mzC1')
-
             const infoBox = document.createElement('div')
-            //
             if (trial.limit === 'step') {
                 infoBox.innerHTML = this.getInnerHTML('counter',trial.stepLimit)
             } else {
                 infoBox.innerHTML = this.getInnerHTML('countdown', (650) / 1000)
             }
-
             infoBox.className = 'infoBox'
             infoBox.id = 'infoBox'
             document.getElementById('mazeWrap').appendChild(infoBox)
 
-
             resize_maze()
             addEventListener("resize", resize_maze);
 
-
-
-            let curCount = 0;
-            let elapsedTime = 0;
             trial.validSteps = 0;
             trial.endPos = [Number(c1.getAttribute('pos_r')), Number(c1.getAttribute('pos_c'))]
-            let sIcd;
-            let seq = [];
-            let mzKB = this.jsPsych.pluginAPI.getKeyboardResponse({
-                callback_function: (e) => {
-                    curCount+=1
-                    seq.push(e.key)
-                    const out = this.moveIt('mzC1',trial.preset,trial.endPos, e.key, trial.showStep)
-                    trial.endPos = out[0];
-                    c1.setAttribute('pos_r',trial.endPos[0])
-                    c1.setAttribute('pos_c',trial.endPos[1])
-                    if (out[1] === true) {trial.validSteps+=1}
-                    infoBox.animate([
-                        {transform: 'scale(1)'},
-                        {transform: 'scale(0.95)'}
-                    ], {duration:200, iterations:1, fill:"backwards"})
-                    if (trial.limit === 'step') {
-                        infoBox.innerHTML = this.getInnerHTML('counter',trial.stepLimit - curCount)
-                        if (curCount >= trial.stepLimit) {
-                            infoBox.animate([
-                                    {backgroundColor: 'white'},
-                                    {backgroundColor: '#dbb5a0'}, {backgroundColor: 'white'},
-                                ],
-                                {duration:500,iterations: 1,delay:0,fill: 'forwards'})
-                            this.jsPsych.pluginAPI.cancelKeyboardResponse(mzKB)
-                            if (trial.showStep === true) {
-                                this.jsPsych.pluginAPI.cancelKeyboardResponse(mzKB)
-                                this.jsPsych.pluginAPI.setTimeout(()=> {
-                                    this.endMaze(trial)
-                                }, 1000)
-                            } else {
-                                const ix = this.moveSeq(trial.preset.c1Pos,trial,seq)
-                                ix.then((out)=> {
-                                    console.log(out)
-                                    trial.endPos = out[0]
-                                    trial.validSteps = out[1]
-                                    this.jsPsych.pluginAPI.setTimeout(()=>{
-                                        this.endMaze(trial)
-                                    }, this.timing.eosPause)
-                                })
-                            }
-                        }
-                    }
-                    if (trial.limit === 'time' && trial.stopAtBox === true && trial.endPos[0] === trial.preset.prizePos[0] && trial.endPos[1] === trial.preset.prizePos[1]) {
-                        this.jsPsych.pluginAPI.clearAllTimeouts()
-                        this.jsPsych.pluginAPI.cancelKeyboardResponse(mzKB)
-                        clearInterval(sIcd)
-                        if (trial.showStep !== true) {
-                            const ix = this.moveSeq(trial.preset.c1Pos,trial,seq)
-                            ix.then((out)=> {
-                                console.log(out)
-                                trial.endPos = out[0]
-                                trial.validSteps = out[1]
-                                trial.residualTime = (trial.timeLimit - elapsedTime) / 1000
-                                this.jsPsych.pluginAPI.setTimeout(()=>{
-                                    this.endMaze(trial)
-                                }, this.timing.eosPause)
-                            })
-                        } else {
-                            this.endMaze(trial)
-                        }
-                    }
 
-                },
-                valid_responses: ['w','a','s','d','arrowup','arrowright','arrowdown','arrowleft'],
-                rt_method: 'performance',
-                persist: true,
-                allow_held_key: false,
+            const stat1 = resolveAfter(this.timing.init,'',this.jsPsych)
+
+            stat1.then(()=>{
+                document.getElementById('veil').style.display = 'none'
+                photonSwitch('maze-stim')
+                this.data.stimOnset = performance.now()
+                this.setUpMazeResp(display_element,trial)
             })
 
-            if (trial.limit === 'time') {
 
-                sIcd = setInterval(() => {
-                    elapsedTime += 100
-                    document.getElementById('infoBox').innerHTML = this.getInnerHTML('countdown', (trial.timeLimit - elapsedTime) / 1000)
-                    if (elapsedTime >= trial.timeLimit) {
-                        clearInterval(sIcd)
-                    }
-                },100)
-                this.jsPsych.pluginAPI.setTimeout(() => {
-                    this.jsPsych.pluginAPI.clearAllTimeouts()
-                    this.jsPsych.pluginAPI.cancelKeyboardResponse(mzKB)
-                    if (trial.showStep !== true) {
-                        const ix = this.moveSeq(trial.preset.c1Pos,trial,seq)
-                        ix.then((out)=> {
-                            console.log(out)
-                            trial.endPos = out[0]
-                            trial.validSteps = out[1]
-                            this.jsPsych.pluginAPI.setTimeout(()=>{
-                                this.endMaze(trial)
-                            }, this.timing.eosPause)
-                        })
-                    } else {
-                        this.endMaze(trial)
-                    }
 
-                },trial.timeLimit)
-            }
+
 
 
 
         }
 
-        initMazePage(display_element,trial) {
+        initMazePage() {
             let html = ''
             html += `
             <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Oswald">
@@ -305,7 +230,6 @@ var jsPsychMaze = (function (jspsych) {
                 
             </div>
             <div class = 'veil' id = 'veil'>
-                <div class="fb" style='opacity: 100%;' id = 'fbBox'></div>
             </div>    
             </body>
             `
@@ -313,20 +237,148 @@ var jsPsychMaze = (function (jspsych) {
 
         }
 
+
+        setUpMazeResp(display_element,trial) {
+            let curCount = 0;
+            let elapsedTime = 0;
+            this.data.sequence = [];
+            let sIcd;
+            let c1 = document.getElementById('mzC1')
+            const infoBox = document.getElementById('infoBox')
+            let mzKB = this.jsPsych.pluginAPI.getKeyboardResponse({
+                callback_function: (e) => {
+                    if (curCount===0) {
+                        photonSwitch('maze-firstKey')
+                        this.data.keyPressOnset = performance.now()
+                    }
+                    curCount+=1
+                    this.data.sequence.push({'key': e.key, 'time_stamp': performance.now()})
+                    const out = this.moveIt('mzC1',trial.preset,trial.endPos, e.key, trial.showStep)
+                    trial.endPos = out[0];
+                    c1.setAttribute('pos_r',trial.endPos[0])
+                    c1.setAttribute('pos_c',trial.endPos[1])
+                    if (out[1] === true) {trial.validSteps+=1}
+                    infoBox.animate([
+                        {transform: 'scale(1)'},
+                        {transform: 'scale(0.95)'}
+                    ], {duration:200, iterations:1, fill:"backwards"})
+                    if (trial.limit === 'step') {
+                        infoBox.innerHTML = this.getInnerHTML('counter',trial.stepLimit - curCount)
+                        if (curCount >= trial.stepLimit) {
+                            infoBox.animate([
+                                    {backgroundColor: 'white'},
+                                    {backgroundColor: '#dbb5a0'}, {backgroundColor: 'white'},
+                                ],
+                                {duration:500,iterations: 1,delay:0,fill: 'forwards'})
+                            this.jsPsych.pluginAPI.cancelKeyboardResponse(mzKB)
+                            if (trial.showStep === true) {
+                                trial.endTime = performance.now()
+                                this.jsPsych.pluginAPI.cancelKeyboardResponse(mzKB)
+                                this.jsPsych.pluginAPI.setTimeout(()=> {
+
+                                    this.endMaze(this.data)
+                                }, this.timing.eosDur)
+                            } else {
+                                trial.endTime = performance.now()
+                                const ix = this.moveSeq(trial.preset.c1Pos,trial,this.data.sequence)
+                                ix.then((out)=> {
+                                    trial.endPos = out[0]
+                                    trial.validSteps = out[1]
+                                    this.jsPsych.pluginAPI.setTimeout(()=>{
+
+                                        this.endMaze(this.data)
+                                    }, this.timing.eosDur)
+                                })
+                            }
+                        }
+                    }
+                    if (trial.limit === 'time' && trial.stopAtBox === true && trial.endPos[0] === trial.preset.prizePos[0] && trial.endPos[1] === trial.preset.prizePos[1]) {
+                        this.jsPsych.pluginAPI.clearAllTimeouts()
+                        this.jsPsych.pluginAPI.cancelKeyboardResponse(mzKB)
+                        clearInterval(sIcd)
+                        this.data.endRespTime = performance.now()
+                        if (trial.showStep !== true) {
+                            photonSwitch('maze-begMove')
+                            const ix = this.moveSeq(trial.preset.c1Pos,trial,this.data.sequence)
+                            ix.then((out)=> {
+                                this.data.endPos = out[0]
+                                this.data.validSteps = out[1]
+                                this.data.residualTime = (trial.timeLimit - elapsedTime) / 1000
+                                this.jsPsych.pluginAPI.setTimeout(()=>{
+                                    this.endMaze(trial)
+                                }, this.timing.eosDur)
+                            })
+                        } else {
+                            resolveAfter(this.timing.eosDur,'',this.jsPsych).then(this.endMaze)
+                        }
+                    }
+
+                },
+                valid_responses: this.keyMap.allowedKeys(['left','right','up','down']),
+                rt_method: 'performance',
+                persist: true,
+                allow_held_key: false,
+            })
+
+            if (trial.limit === 'time') {
+
+                sIcd = setInterval(() => {
+                    elapsedTime += 100
+                    document.getElementById('infoBox').innerHTML = this.getInnerHTML('countdown', (trial.timeLimit - elapsedTime) / 1000)
+                    if (elapsedTime >= trial.timeLimit) {
+                        clearInterval(sIcd)
+                    }
+                },100)
+                this.jsPsych.pluginAPI.setTimeout(() => {
+                    this.data.endRespTime = performance.now()
+                    clearInterval(sIcd)
+                    this.jsPsych.pluginAPI.clearAllTimeouts()
+                    this.jsPsych.pluginAPI.cancelKeyboardResponse()
+                    if (trial.showStep !== true) {
+                        photonSwitch('maze-begMove')
+                        const ix = this.moveSeq(trial.preset.c1Pos,trial,this.data.sequence)
+                        ix.then((out)=> {
+                            this.data.endPos = out[0]
+                            this.data.validSteps = out[1]
+                            this.data.residualTime = (trial.timeLimit - elapsedTime) / 1000
+                            this.jsPsych.pluginAPI.setTimeout(()=>{
+                                this.endMaze(trial)
+                            }, this.timing.eosDur)
+                        })
+                    } else {
+                        resolveAfter(this.timing.eosDur,'',this.jsPsych).then(this.endMaze)
+                    }
+
+                },trial.timeLimit)
+            }
+        }
+
         moveSeq(curPos,trial,seq) {
+            if (trial.reverse===true) {
+                document.getElementById('mzPrize').textContent = '💀'
+                document.getElementById('mzPrize').style.backgroundColor = '#5a4a78'
+                document.getElementById('mzPrize').style.borderColor = '#341a63'
+            }
             return new Promise(async (resolve)=>{
                 let validSteps = 0;
-                for (let ik of seq) {
-                    const out = this.moveIt('mzC1',trial.preset,curPos, ik,true)
-                    curPos = out[0];
-                    document.getElementById('mzC1').setAttribute('pos_r',curPos[0])
-                    document.getElementById('mzC1').setAttribute('pos_c',curPos[1])
-                    if (out[1] === true) {
-                        validSteps+=1
+                if (seq.length < 1) {
+                    this.jsPsych.pluginAPI.setTimeout( () => {
+                        resolve([curPos,validSteps])
+                    }, this.timing.movement)
+                } else {
+                    for (let ik of seq) {
+                        const out = this.moveIt('mzC1',trial.preset,curPos, ik.key,true)
+                        curPos = out[0];
+                        document.getElementById('mzC1').setAttribute('pos_r',curPos[0])
+                        document.getElementById('mzC1').setAttribute('pos_c',curPos[1])
+                        if (out[1] === true) {
+                            validSteps+=1
+                        }
+                        await out[2].finished
                     }
-                    await out[2].finished
+                    resolve([curPos,validSteps])
                 }
-                resolve([curPos,validSteps])
+
             })
         }
 
@@ -347,17 +399,7 @@ var jsPsychMaze = (function (jspsych) {
             // maze array is the array of maze set up (with true / false )
             // init_pos is the starting pos of the move
             // key is which key did they press
-            const keymap = new Map()
-            keymap.set('a','left')
-            keymap.set('arrowleft','left')
-            keymap.set('w','up')
-            keymap.set('arrowup','up')
-            keymap.set('d','right')
-            keymap.set('arrowright','right')
-            keymap.set('s','down')
-            keymap.set('arrowdown','down')
-
-            let dir = keymap.get(key.toLowerCase())
+            let dir = this.keyMap.getAction(key.toLowerCase())
             let new_pos = [0,0];
             let wiggle_dir = [0,0];
             switch (dir) {
@@ -420,44 +462,98 @@ var jsPsychMaze = (function (jspsych) {
         }
 
         endMaze(trial) {
-            console.log('Maze Complete')
-            const veil = document.getElementById('veil')
-            const fbBox = document.getElementById('fbBox')
-            let aniCon;
-            const [totalScore, ifBbox] = mazeScore(
-                trial.preset.c1Pos, trial.endPos, trial.preset.prizePos,
-                trial.preset.cells_h,trial.validSteps, trial.residualTime)
-            if (ifBbox > 0) {
-                aniCon = [
-                    {scale:0.9},
-                    {scale:2},
+            if (this.trialComplete === false) {
+                this.trialComplete = true
+                const veil = document.getElementById('veil')
+
+                let aniCon, cSn
+                let noResp = false;
+                const endPos = trial.endPos;
+                const prizePos = trial.preset.prizePos;
+                const initPos = trial.preset.c1Pos;
+
+                const ifBox = (endPos[0] === prizePos[0] && endPos[1] === prizePos[1]);
+                const initDist = pythagoreanC( (prizePos[0] - initPos[0]), (prizePos[1] - initPos[1]));
+                const endDist = pythagoreanC( (prizePos[0] - endPos[0]), (prizePos[1] - endPos[1]) )
+                const travelDist = pythagoreanC((endPos[0] - initPos[0]), (endPos[1] - initPos[1]))
+                let cfEnd = [
+                    initPos[0] - (endPos[0] - initPos[0]),
+                    initPos[1] - (endPos[1] - initPos[1])
                 ]
-                fbBox.style.backgroundColor = '#acdb86'
-            } else {
-                aniCon = [
-                    {opacity:'100%'},
-                    {opacity: '0%'}
-                ]
+                for (let i in [0,1]) {
+                    if (cfEnd[i] < 0) {
+                        cfEnd[i] = Math.abs(cfEnd[i]) + trial.preset.cells_h
+                    }
+                }
+                let cfDist = pythagoreanC((prizePos[0] - cfEnd[0]), (prizePos[1] - cfEnd[1]))
+                let cfifBox = false
+                if (endDist > initDist && cfDist > initDist && !ifBox) {
+                    // here is for when
+                    cfEnd = prizePos
+                    cfDist = 0
+                    cfifBox = true
+                }
+
+                console.log(`Init Pos:',${initPos}, 'End Pos': ${endPos}, 'Gift Pos': ${prizePos}, 'CF Pos: ${cfEnd}`)
+                let [totalScore, ifBbox] = mazeScore(initDist, endDist, travelDist, ifBox, trial.reverse)
+                let cfPoints = mazeScore(initDist, cfDist, travelDist, cfifBox, trial.reverse)
+
+                if (ifBbox > 0) {
+                    aniCon = [
+                        {scale:0.9},
+                        {scale:2},
+                    ]
+                } else {
+                    aniCon = [
+                        {opacity:'100%'},
+                        {opacity: '0%'}
+                    ]
+                }
+
+                if (totalScore > 0) {
+                    cSn = 0
+                } else if (totalScore <0) {
+                    cSn = 1
+                } else if (totalScore === 0) {
+                    cSn = 2
+                }
+
+
+                if (trial.preset.c1Pos[0] === trial.endPos[0] && trial.preset.c1Pos[1] === trial.endPos[1]) {
+                    noResp = true
+                    totalScore = -10
+                    cfPoints = [10]
+                    cSn = 3
+                }
+
+                const fbBox = standardFeedback('',totalScore,'',cfPoints[0],noResp,cSn,'',false,this.oldFb)
+                fbBox.id = 'fbBox'
+
+                veil.appendChild(fbBox)
+                const prizePromise = document.getElementById('mzPrize').animate(aniCon,{
+                    duration:this.timing.boxZoom,fill: 'forwards',delay:0,iterations:1
+                })
+
+
+                prizePromise.finished.then(()=> {
+                    removeEventListener("resize", resize_maze);
+                    veil.style.display = 'flex'
+                    resolveAfter(this.timing.preFb,'',this.jsPsych).then(()=> {
+                        this.jsPsych.pluginAPI.clearAllTimeouts()
+                        this.jsPsych.pluginAPI.cancelAllKeyboardResponses()
+                        fbBox.style.opacity = '100%'
+                        photonSwitch('maze-fbOn')
+                        this.data.fbOnset = performance.now()
+                        resolveAfter(this.timing.fbDur,'',this.jsPsych).then(()=> {
+                            this.jsPsych.pluginAPI.clearAllTimeouts()
+                            this.jsPsych.pluginAPI.cancelAllKeyboardResponses()
+                            this.data.endTime = performance.now()
+                            this.jsPsych.finishTrial(this.data)
+                        })
+                    })
+                })
             }
 
-            const prizePromise = document.getElementById('mzPrize').animate(aniCon,{
-                duration:this.timing.boxZoom,fill: 'forwards',delay:0,iterations:1
-            })
-
-            fbBox.innerHTML = this.getInnerHTML('feedback',totalScore)
-            prizePromise.finished.then(()=> {
-                trial.fbOnset = performance.now()
-                veil.style.display = 'flex'
-                const ani1 = document.getElementById('veil').animate([
-                    {opacity: 0},
-                    {opacity: 1},
-                ],{duration: this.timing.fade, iterations: 1, delay: 0, fill: 'forwards'}).finished
-                ani1.then( ()=>{
-                    this.jsPsych.pluginAPI.setTimeout(() => {
-                        this.jsPsych.finishTrial(trial)
-                    },this.timing.fbDur)
-                })
-            })
 
         }
     }
@@ -501,20 +597,48 @@ function genMaze(MzPreset,wrapName) {
 
 }
 
-function mazeScore(initPos, endPos, prizePos, mzSize, validStep, residualTime) {
-    console.log('init:',initPos)
-    console.log('end:',endPos)
-    console.log('prize:',prizePos)
-    if (!residualTime) {residualTime = 0}
-    const ifBox = (endPos[0] === prizePos[0] && endPos[1] === prizePos[1]) ? 2.5:0;
-    const boxScore = Math.sqrt(Math.pow(prizePos[0] - initPos[0],2) + Math.pow(prizePos[1] - initPos[1],2));
-    const dPScore  = Math.sqrt(Math.pow(prizePos[0] - endPos[0],2) + Math.pow(prizePos[1] - endPos[1],2));
-    const dTScore  = Math.sqrt(Math.pow(endPos[0] - initPos[0],2) + Math.pow(endPos[1] - initPos[1],2));
-    console.log(`ifBox: ${ifBox}, boxScore: ${boxScore}, dTscore: ${dTScore}, dPScore: ${dPScore},`)
+function mazeScore(initDist, endDist, travelDist, ifBox,reverse) {
+    console.log('Maze Score Calculation Version 2')
+
+    if (!reverse) {
+        reverse = false
+    }
+
+
+    console.log(`Reached Box: ${ifBox}, Initial Distance: ${initDist}, Ending Distance: ${endDist}, 
+    Traveled Distance: ${travelDist},`)
+
     // total score is equal to the distance traveled and distance to the prize and prize winning
-    const totalScore = Math.round((((((dTScore) - (dPScore) + boxScore + (ifBox*boxScore))/(mzSize)) ) * 4) + (residualTime * 0.2))
-    console.log(totalScore)
+    let totalScore;
+    if (reverse === false) {
+        console.log('regular calculation')
+        // in regular cases, max point is 10, closer to box grants some points
+        totalScore = ((initDist - endDist) / (initDist) * 5) + (ifBox*5)
+    } else {
+        console.log('reverse calculation')
+        // in reverse cases, max point is 10, min point is -10, let's be discrete and just split it into two cases:
+        if (endDist <= initDist) {
+            // in this case they got closer to the trap & get -5 for reaching it
+            totalScore = ((endDist-initDist) / (initDist) * 5) + (ifBox*-5)
+        } else {
+            let soFar = 0;
+            // in this case they ran away:
+            if (travelDist >= initDist) {
+                // if they ran so far that it was further than the og pos and gift they get a bonus
+                soFar = 1;
+                travelDist = initDist
+            }
+            totalScore = ((travelDist) / (initDist) * 5) + (soFar*5)
+        }
+    }
+    totalScore = Math.round(totalScore)
+    console.log(`Distance Change: ${endDist - initDist}`)
+    console.log(`Total score: ${totalScore}`)
     return [totalScore, ifBox]
+}
+
+function pythagoreanC(a, b) {
+    return Math.sqrt( Math.pow(a,2) + Math.pow(b, 2))
 }
 
 function resize_maze(){
@@ -591,7 +715,6 @@ function resize_maze(){
 
 function getMazeConfig() {
     return ensure_uid_set().then(async ()=>{
-        console.log('working')
         let gc = await db.collection('MazeConfig').get()
         let output = {};
         for (let dc of gc.docs) {
@@ -629,7 +752,6 @@ function continMaze(tlType,MazeInfo,emoInt) {
                 iCount++
             }
         }
-        console.log(mazeProb)
     } else {
         // Condense will have 12 trials: 3 sizes (10, 15, 20, 4 condits
         const condiALL = []
@@ -647,7 +769,7 @@ function continMaze(tlType,MazeInfo,emoInt) {
         let iCount = 0;
         for (let sb of condiALL) {
             for (let rb of Object.keys(sb)) {
-                for (i=0; i<2; i++) {
+                for (let i=0; i<2; i++) {
                     const mzIrb =sample(sb[rb])
 
                     mazeProb.push(
@@ -659,7 +781,6 @@ function continMaze(tlType,MazeInfo,emoInt) {
 
             }
         }
-        console.log(mazeProb)
     }
     return mazeProb
 }

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MEG Study</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto Condensed">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Oswald">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Rubik">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Bebas Neue">
+    <script src="js/jsPsych/jspsych.js"></script>
+    <script src="js/jsPsych/plugin-preload.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-auth.js"></script>
+    <script src="js/firebase.js"></script>
+    <script src="js/init.js"></script>
+    <script src="js/utility.js"></script>
+    <script src="js/plugin-Gamble.js"></script>
+    <script src="js/plugin-Math.js"></script>
+    <script src="js/plugin-TrustGame.js"></script>
+    <script src="js/plugin-RateEmotion.js"></script>
+    <script src="js/plugin-Compete.js"></script>
+    <script src="js/plugin-CrossBoard.js"></script>
+    <script src="js/plugin-Maze.js"></script>
+    <script src="js/plugin-Info.js"></script>
+    <script src="js/plugin-Localize.js"></script>
+    <script src="js/table_maze.js"></script>
+    <script src="js/instruct.js"></script>
+    <script src="js/genConditions.js"></script>
+    <script src="js/MEGTimeline.js"></script>
+    <script src="js/studyTimeline.js"></script>
+    <link href="js/jsPsych/jspsych.css" rel="stylesheet" type="text/css" />
+    <link href="css/general.css" rel="stylesheet" type="text/css" />
+</head>
+<style>
+    .msgBox input {
+        min-width: 19.5vw;
+        min-height: 2vh;
+        font-size: 2vh;
+        border-radius: 5px;
+        border-width: 3px;
+        border-color: #b07d6d;
+    }
+    .msgBox select {
+        min-width: 20vw;
+        min-height: 2vh;
+        font-size: 2vh;
+        border-radius: 5px;
+        border-width: 3px;
+        border-color: #b07d6d;
+    }
+    .optionRow {
+        display: flex;
+        justify-content: space-between;
+
+    }
+    .optionRow button {
+        margin: 10px 20px 10px 20px;
+        font-size: 2rem;
+    }
+    .xTop {
+        position: absolute;
+        top: 0;
+        left: 50vw;
+        font-size: 8rem;
+        padding: 0;
+        margin: 0;
+        line-height: 6rem;
+    }
+</style>
+<body>
+
+<div class="wrapLong" id="MEGWrap">
+    <div id="msgBox" class="msgBox">
+        <h1>Basic Information</h1>
+        <form id="participantInfo">
+            <label for="id">Participant ID:</label>
+            <br>
+            <input type="text" id="id" value="MEG10x">
+            <br>
+            <label for="session">Session:</label>
+            <br>
+            <select name="session" id="session">
+                <option value=1>Session 1</option>
+                <option value=2>Session 2</option>
+                <option value=3>Session 3</option>
+            </select>
+            <br>
+            <label for="iddup">Participant's favorite letter:</label>
+            <br>
+            <select name="iddup" id="iddup">
+                <option value=1>A</option>
+                <option value=2>B</option>
+                <option value=3>C</option>
+                <option value=4>D</option>
+                <option value=5>E</option>
+                <option value=6>F</option>
+                <option value=7>G</option>
+            </select>
+            <br>
+            <label for="scantag">Task Version Control</label>
+            <br>
+            <input type="text" id="scantag" value="MEGv1.2">
+        </form>
+    </div>
+    <h1 id="loadingText" style="text-align: center;"> Please wait... Experiment Loading ...</h1>
+    <div id="optionRow" class="optionRow" style="justify-content: space-around; display: none">
+        <button id="localizer@audio" onclick="runMeg(this.id)">Audio Localizer</button>
+        <button id="localizer@visual" onclick="runMeg(this.id)">Visual Localizer</button>
+        <button id="story@1" onclick="runMeg(this.id)">Story 1</button>
+        <button id="story@2" onclick="runMeg(this.id)">Story 2</button>
+        <button id="task@1" onclick="runMeg(this.id)">Task 1</button>
+        <button id="story@3" onclick="runMeg(this.id)">Story 3</button>
+        <button id="story@4" onclick="runMeg(this.id)">Story 4</button>
+        <button id="task@2" onclick="runMeg(this.id)">Task 2</button>
+        <button id="story@5" onclick="runMeg(this.id)">Story 5</button>
+        <button id="story@6" onclick="runMeg(this.id)">Story 6</button>
+    </div>
+</div>
+<div class="jsPsychDE" id="display_element" style="display: none"></div>
+</body>
+<script>
+
+    window.doingMEG = 'flash'
+    window.photonLog = [];
+    photonSwitch()
+    MzPromise = getMazeConfig().then((MazeInfo)=> {
+        window.MazeInfo = MazeInfo
+        document.getElementById('loadingText').style.display = 'none'
+        document.getElementById('optionRow').style.display = 'flex'
+    })
+    presentCalibration = function(divName) {
+        const fillIn = document.getElementById(divName)
+        fillIn.innerHTML = `
+            <h1 style="margin: auto">Please wait and stay still... We are syncing with the scanner...</h1>
+            <button id="startExp" style="max-height: 10vh">Start Experiment</button>
+        `
+    }
+    runMeg = function (e) {
+        document.getElementById(e).style.backgroundColor = 'darkgreen'
+        document.getElementById(e).style.color = 'grey'
+        document.getElementById(e).disabled = true
+        console.log(e)
+        let ptInfo
+        if (!window.ptInfo) {
+            window.ptInfo = {
+                ID: document.getElementById('id').value,
+                Session: document.getElementById('session').value,
+                IDLookUp: document.getElementById('iddup').value,
+                ScanTag: document.getElementById('scantag').value,
+                Block: e,
+                performanceOrigin: performance.timeOrigin,
+            }
+        } else {
+            window.ptInfo.Block = e
+        }
+
+        console.log(window.ptInfo)
+        document.getElementById('optionRow').style.display = 'none'
+        presentCalibration('msgBox')
+        const pssI = setInterval(function () {
+            photonSwitch('calibration',200)
+        },1000)
+        document.getElementById('startExp').addEventListener('click',() => {
+            clearInterval(pssI)
+            photonSwitch('ExpOn',1000)
+            const pSWait = setTimeout(() => {
+                let jsPsych = initJsPsych({
+                    display_element: 'display_element',
+                    on_finish: (dt) => {
+                        window.successFinish = true
+                        const gdt = jsDt2Fire(dt)
+                        console.log(gdt)
+                        const de = document.getElementById('display_element')
+                        photonSwitch('ExpOff',1000)
+                        setTimeout(() => {
+                            de.innerHTML = `
+                        <div id='msgFIN' style="display: flex; flex-direction: column; justify-content: space-around">
+                            <h1 style="margin: auto;">We are done with this block. Please take a short Break.</h1>
+                            <h1 style="margin: auto;">We will resume shortly. </h1>
+                            <button style="margin: auto;" onclick="resetMEG()"> Continue </button>
+                        </div>
+                        `
+                            setTimeout(()=> {
+                                window.ptInfo['triggerTiming'] = window.photonLog
+                                jsPsych.data.addProperties(window.ptInfo)
+                                jsPsych.data.get().localSave('csv', `MEG_${window.ptInfo.ID}_${window.ptInfo.Session}_${window.ptInfo.Block}_COMPLETE.csv`);
+                                const ie = db.collection('MEGP1').doc(window.ptInfo.ID).collection(window.ptInfo.Session).doc(window.ptInfo.Block).set(gdt)
+                                window.photonLog = [];
+                            }, 1500)
+
+                        }, 1000)
+                    },
+                    on_close: () => {
+                        if (window.successFinish!==true) {
+                            jsPsych.data.get().localSave('csv', `MEG_${window.ptInfo.ID}_${window.ptInfo.Session}_${window.ptInfo.Block}_INCOMPLETE.csv`);
+                        }
+                    }
+                });
+                document.getElementById('display_element').style.display = 'flex'
+                //
+
+                jsPsych.run(getMEGContingency(window.ptInfo.Session,window.ptInfo.Block, window.MazeInfo))
+            }, 1500)
+        })
+    }
+
+
+</script>
+</html>

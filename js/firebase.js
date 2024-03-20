@@ -30,7 +30,6 @@ firebase.auth().onAuthStateChanged(async function (user) {
         uid = user.uid;
         console.log('user signed in as:' + uid);
     }
-    await uid
 })
 
 function ensure_uid_set(timeout) {

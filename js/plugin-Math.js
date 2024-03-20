@@ -21,14 +21,35 @@ jsPsychMath = (function(jspsych) {
                 type: jspsych.ParameterType.INT,
                 default: 'Correct',
             },
+            difficulty: {
+                type: jspsych.ParameterType.STRING,
+                default: 'easy',
+            },
+            twist: {
+                type: jspsych.ParameterType.BOOL,
+                default: false,
+            },
             whichSide: {
                 type: jspsych.ParameterType.STRING,
-                default: '',
+                default: 'left',
             },
             maxRespTime: {
                 type: jspsych.ParameterType.INT,
-                default: 5000,
+                default: -1,
+            },
+            digitLength: {
+                type: jspsych.ParameterType.INT,
+                default: 2,
+            },
+            operationLevel: {
+                type: jspsych.ParameterType.INT,
+                default: 0,
+            },
+            oldFb: {
+                type: jspsych.ParameterType.BOOL,
+                default: false,
             }
+
         }
     }
 
@@ -36,87 +57,88 @@ jsPsychMath = (function(jspsych) {
 
         constructor(jsPsych) {
             this.jsPsych = jsPsych;
-            this.timing = {
-                fade: 0,
-                intro: 200,
-                selDur: 500,
-                fbDur:2000,
-                iti:0,
-            }
+            this.timing = initTiming()
+            this.keyMap = new keyMap()
+            this.data = initData('Math')
         }
 
         trial(display_element, trial) {
             window.onbeforeunload = function () {
                 window.scrollTo(0, 0);
             }
-
-
-            let eq, cor, op;
-            if (trial.mathEquation === '') {
-                [eq, cor, op] = math_engine()
-            } else {
-                let eq = trial.mathEquation;
-                let cor = trial.mathCorr;
+            this.data.initTime = performance.now()
+            if (trial.maxRespTime > 0) {
+                this.timing.maxRespTime = trial.maxRespTime
             }
-            trial.initTime = performance.now()
+
+            this.jsPsych.pluginAPI.cancelAllKeyboardResponses()
+            this.jsPsych.pluginAPI.clearAllTimeouts()
+
+            // set up the default contingencies:
+            if (trial.difficulty === 'easy') {
+                trial.digitLength = 1
+            } else if (trial.difficulty === 'hard') {
+                trial.digitLength = 2
+            }
+
+            if (trial.twist === true) {
+                trial.operationLevel = 1
+            } else if (trial.twist === false) {
+                trial.operationLevel = 0
+            }
+
             if (trial.whichSide === '') {
                 trial.whichSide = Math.random() > 0.5 ? 'left':'right';
             }
+            // DO NOT USE RIGHT SIDE
             if (trial.whichSide === 'left') {
-                trial.btxt = ['Correct','Wrong'];
+                this.btxt = ['TRUE','FALSE'];
             } else {
-                trial.btxt = ['Wrong','Correct'];
+                this.btxt = ['FALSE','TRUE'];
+            }
+            this.data.TRUEside = trial.whichSide
+
+            this.data.difficulty = trial.difficulty
+            this.data.twist = trial.twist
+            this.oldFb = trial.oldFb
+            let eq, cor, corLogi, op;
+            if (trial.mathEquation === '') {
+                [eq, corLogi, op] = mathEngine(trial.digitLength, trial.operationLevel)
+                cor = corLogi?'TRUE':'FALSE'
+
+            } else {
+                eq = trial.mathEquation;
+                cor = trial.mathCorr;
+                op = ''
             }
 
-            trial.mathCor = cor;
-            trial.jsPsych = this.jsPsych;
-            trial.mathEquation = eq;
-            trial.mathOperation = op;
-
-
-            resetSkipButton()
-            document.getElementById('skipButton').addEventListener('click',()=> {
-                alert("Skipping entire task block")
-                trial.jsPsych.endCurrentTimeline()
-                trial.jsPsych.finishTrial()
-                trial.jsPsych.pluginAPI.cancelAllKeyboardResponses()
-                trial.jsPsych.pluginAPI.clearAllTimeouts()
-            })
-            // set up information:
-
-            updateInfo('You have 5 seconds to make a response here. Afterwards the feedback will display for 2s.' +
-                'Total scheduled time per trial is 12s, including emotion ratings ' +
-                'There will be 30 trials for the short version and 100 for long.' +
-                'The math task will have a difficulty score for every trial. ' +
-                'Currently, we consider number of digits and operation type. ' +
-                'The score should be (NumDigits1 * NumDigits2)^OperationScale. ' +
-                'Operation scale is 1 for + / - but 2 for *.')
+            this.data.contingency = {
+                equation: eq,
+                operation: op,
+                fact: cor,
+                digitLength: trial.digitLength,
+                operationLevel: trial.operationLevel,
+            }
 
             // replace RPE engine here to generate
-            display_element.innerHTML = this.initMathPage(eq,trial.btxt)
+            display_element.innerHTML = this.initMathPage(eq,this.btxt)
 
-            const veil = document.getElementById('veil')
-            veil.style.display = 'flex'
-
-            const stat1 = veil.animate([
-                {opacity: '100%'},
-                {opacity: '0%'},
-            ], {duration:this.timing.fade,iterations: 1,delay:this.timing.intro,fill: 'forwards'}).finished
+            const stat1 = resolveAfter(this.timing.init,'',this.jsPsych)
 
             stat1.then(()=>{
                 document.getElementById('veil').style.display = 'none'
+                photonSwitch('math-stim')
+                this.data.stimOnset = performance.now()
                 this.jsPsych.pluginAPI.getKeyboardResponse({
-                    callback_function: (e) => {
-                        this.mathKeypress(e,trial)
-                    },
-                    valid_responses: ['j','J','f','F'],
+                    callback_function: this.mathKeypress,
+                    valid_responses: this.keyMap.allowedKeys(['left','right']),
                     rt_method: 'performance',
                     persist: false,
                     allow_held_key: false,
                 });
-                this.jsPsych.pluginAPI.setTimeout((e) => {
-                    this.mathKeypress(e,trial)
-                },trial.maxRespTime)
+                this.jsPsych.pluginAPI.setTimeout(() => {
+                    this.mathKeypress('')
+                },this.timing.maxRespTime)
 
             })
 
@@ -124,9 +146,8 @@ jsPsychMath = (function(jspsych) {
 
 
         }
-
         initMathPage(eq,btxt) {
-            let html = `
+            return `
             <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Rubik">
             <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Bebas Neue">
             <style>
@@ -151,6 +172,7 @@ jsPsychMath = (function(jspsych) {
                     flex: 1;
                     font-family: "Rubik", sans-serif;
                     padding-top: 8%;
+                    padding-bottom: 8%;
                     font-size: 17vmin;
                     font-weight: bold;
                     text-align: center;
@@ -164,16 +186,16 @@ jsPsychMath = (function(jspsych) {
                     flex-direction: row;
                     flex-wrap: nowrap;
                     font-weight: bold;
-                    justify-content: space-between;
+                    justify-content: space-around;
                     align-items: center;
                 }
                 .buttonRow span {
-                    padding: 0 7% 0 6%;
+                    margin: auto;
                     font-size: 2vmin;
                 }
                 .buttonRow button {
-                    min-height: 100%;
-                    min-width: 20%;
+                    height: 5vw;
+                    aspect-ratio: auto 3 / 1;
                     border-radius: 10px;
                     color: black;
                     border-color: black;
@@ -183,123 +205,109 @@ jsPsychMath = (function(jspsych) {
                     background-color: unset;
                     color: unset;
                 }
-                .fb {
-                    -webkit-user-select: none; /* Safari */
-                    -ms-user-select: none; /* IE 10 and IE 11 */
-                    user-select: none; /* Standard syntax */
-                    margin: auto;
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: space-around;
-                    padding: 1%;
-                    font-family: "Oswald", sans-serif; 
-                    aspect-ratio: auto 3/1;
-                    min-width: 50vw;
-                    font-size: 5rem;
-                    line-height: 5rem;
-                    border-radius: 20px;
-                    opacity: 0;
-                    z-index: 992;
-                    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
-                }
-                .fb p {
-                    margin: auto;
-                }
-                .fb strong {
-                    font-size: 6rem;
-                }
-                .fb h1 {
-                    margin: auto;
-                    font-size: 7rem;
-                    font-weight: 1000;
-                }
+                
             </style>
             <body>
-            <div class = 'wrap' id = 'MathWrap'>
+            <div class = 'wrapLong' id = 'MathWrap'>
                 <div class = 'helpText' id = 'helpText'>
-                   Please decide if the math equation below is correct or wrong
+                   
                 </div>
                 <div class = 'equation' id = 'equation'>
                    ${eq}
                 </div>
                 <div class = 'buttonRow' id = 'buttonRow'>
-                   <button id="fButton">${btxt[0]}</button>
-                   <button id="jButton">${btxt[1]}</button>
+                   <button id="leftButton">${btxt[0]}</button>
+                   <button id="rightButton">${btxt[1]}</button>
                 </div>
-                <div class = 'buttonRow' style="margin: 0; padding-bottom: 3vmin" id = 'buttonRow'>
-                   <span>Press 'F'</span>
-                   <span>Press 'J'</span>
+                <div class = 'buttonRow' style="margin: 0; padding-bottom: 3vmin" id = 'buttonRow2'>
+                   <span>Press LEFT key</span>
+                   <span>Press RIGHT key</span>
                 </div>
             </div>
             <div class = 'veil' id = 'veil'></div>    
             </body>
             `
-            return html
+
 
         }
 
-        mathKeypress(e, trial) {
+        mathKeypress(e) {
+            photonSwitch('math-resp')
+            this.data.keyPressOnset = performance.now()
             this.jsPsych.pluginAPI.cancelAllKeyboardResponses()
             this.jsPsych.pluginAPI.clearAllTimeouts()
-            let resp;
-            if(e) {
-                resp = e;
-                resp.answer = resp.key === 'f' ? trial.btxt[0]:trial.btxt[1]
-                resp.actualCor = resp.answer === trial.mathCor;
-                resp.equation = trial.mathEquation;
-                resp.operation = trial.mathOperation;
-                resp.initTime = trial.initTime;
-                resp.pts = calScoreMath(resp)
-                document.getElementById(`${e.key}Button`).style.backgroundColor = '#eda532'
+            console.log(e)
 
-                console.log(resp.pts)
 
+            if(e !== '') {
+                this.data.key = this.keyMap.getAction(e.key.toLowerCase());
+                this.data.rt  = e.rt;
+                this.data.respType    = (this.data.key === 'left' ? this.btxt[0]:this.btxt[1])
+                this.data.respFactual = (this.data.respType === this.data.contingency.fact);
+                document.getElementById(`${this.data.key}Button`).style.backgroundColor = '#eda532'
             } else {
-                resp = {
-                    key:'',
-                    rt:'',
-                    equation:trial.mathEquation,
-                    operation:trial.mathOperation,
-                    answer:'na',
-                    actualCor:'na',
-                }
+                this.data.fb = 'noresp'
+                this.data.respType = 'noresp'
+                this.data.respFactual = 'noresp'
+                document.getElementById('equation').remove()
+                document.getElementById(`leftButton`).remove()
+                document.getElementById(`rightButton`).remove()
+                document.getElementById(`buttonRow2`).remove()
             }
-            const fb = document.createElement('div')
+
+
+            let uChoice, cfChoice, cSn;
+            const diffScore = calScoreMath({
+                digitLength: this.data.contingency.digitLength,
+                operationLevel: this.data.contingency.operationLevel,
+                rt: this.data.rt,
+                maxRespTime: this.timing.maxRespTime,
+            });
+            const invertScore = Math.round((diffScore - Math.random()*3) -10);
+            this.data.pts = -10;
+            this.data.cfPts = diffScore;
+            uChoice = 'Did not respond'
+            cfChoice = this.data.contingency.fact
+            cSn = 3
+
+            if (this.data.respFactual === true) {
+                uChoice = this.data.respType
+                cfChoice = (this.data.respType === 'TRUE' ? 'FALSE':'TRUE')
+                this.data.pts = diffScore
+                this.data.cfPts = invertScore
+                this.data.fb = 'correct'
+                cSn = 0
+
+            } else if (this.data.respFactual === false) {
+                uChoice = this.data.respType
+                cfChoice = (this.data.respType === 'TRUE' ? 'FALSE':'TRUE')
+                this.data.pts = invertScore
+                this.data.cfPts = diffScore
+                this.data.fb = 'wrong'
+                cSn = 1
+            }
+            const fb = standardFeedback(uChoice,this.data.pts,cfChoice,this.data.cfPts,this.data.fb==='noresp',
+                cSn,'chose',false,this.oldFb)
             fb.id = 'fb'
-            fb.className = 'fb'
-            fb.style.backgroundColor = '#d1d1d1'
-            fb.innerHTML = `<h1>No response</h1>`
-
             document.getElementById('veil').appendChild(fb)
-
-            if (resp.actualCor === true) {
-                fb.style.backgroundColor = '#ccdea6'
-                fb.innerHTML = `<h1>TRUE!</h1><p>You earn <strong>${resp.pts}</strong> points</p>`
-
-            } else if (resp.actualCor === false) {
-                fb.style.backgroundColor = '#db9a86'
-                fb.innerHTML = `<h1>FALSE!</h1>`
-
-            }
-
-
-
-            document.getElementById('veil').animate([
-                {opacity: '0%',display: 'none'},
-                {opacity: '100%', display: 'flex'},
-            ], {duration:this.timing.fade,iterations: 1,delay:this.timing.selDur,fill: 'forwards'})
-            const aniPromise = fb.animate([
-                {opacity: '0%'},
-                {opacity: '100%'},
-            ], {duration:this.timing.fade,iterations: 1,delay:this.timing.selDur,fill: 'forwards'}).finished
-            aniPromise.then(()=>{
-                this.jsPsych.pluginAPI.setTimeout(()=>{
-                    this.jsPsych.pluginAPI.cancelAllKeyboardResponses()
-                    this.jsPsych.pluginAPI.clearAllTimeouts()
-                    this.jsPsych.finishTrial(resp)
-                },this.timing.fbDur)
-
+            const fb1 = resolveAfter(this.timing.selDur,'',this.jsPsych)
+            fb1.then(()=>{
+                document.getElementById('veil').style.display = 'flex'
+                const fb2 = resolveAfter(this.timing.preFb,'',this.jsPsych)
+                fb2.then(()=>{
+                    fb.style.opacity = '100%'
+                    photonSwitch('math-fbOn')
+                    this.data.fbOnset = performance.now()
+                    this.jsPsych.pluginAPI.setTimeout(()=>{
+                        this.data.endTime = performance.now()
+                        this.data.duration = this.data.endTime - this.data.initTime
+                        this.jsPsych.pluginAPI.cancelAllKeyboardResponses()
+                        this.jsPsych.pluginAPI.clearAllTimeouts()
+                        this.jsPsych.finishTrial(this.data)
+                    },this.timing.fbDur)
+                })
             })
+
 
         }
 
@@ -330,15 +338,90 @@ function math_engine() {
     }
 
     if (Math.random() > 0.5) {
-        out = 'Correct'
+        out = 'TRUE'
         eq = `${a} ${sel_op} ${b} = ${ra}`
     } else {
-        out = 'Wrong'
-        eq = `${a} ${sel_op} ${b} = ${ra + Math.ceil(Math.random()*20) - Math.ceil(Math.random()*20)}`
+        out = 'FALSE'
+        eq = `${a} ${sel_op} ${b} = ${ra + Math.ceil(Math.random()*9) - Math.ceil(Math.random()*9)}`
     }
 
     return [eq, out, sel_op]
 
+}
+
+function mathEngine(sDl, oDl, Cor) {
+    // Not sure why I used these confusing variable names:
+    // sDl is the digits length 1 is 1 2 is 2
+    // oDl is the operation level 0 is +/- and 1 is x
+    // Cor is whether this is TRUE or FALSE equations
+
+    let d2, d1, d4, ans, equation
+    let d3 = String(Math.ceil(Math.random()*2)) + String(Math.ceil(Math.random()*9))
+
+    if (sDl === 2) {
+        d4 = String(Math.ceil(Math.random()*2)) + String(Math.ceil(Math.random()*9))
+        while (d4 === d3 ) {
+            d4 = String(Math.ceil(Math.random()*2)) + String(Math.ceil(Math.random()*9))
+        }
+    } else {
+        d4 = String(Math.ceil(Math.random()*9))
+        while(d4 === '1'){
+            d4 = String(Math.ceil(Math.random()*9))
+        }
+    }
+    if (typeof Cor === 'undefined') {
+        Cor = Math.random() > 0.5;
+    }
+    if (Math.random() > 0.5) {
+        d1 = d3
+        d2 = d4
+    } else {
+        d1 = d4
+        d2 = d3
+    }
+    const dNoise = String(Math.round(Math.random()*2)) + String(Math.round(Math.random()*9))
+    // random generation like this should be oaky since the sample pool is just too large.
+    // There is chances that it might ended up having the same equation here and there;
+    const operationsAll = ['+','-','×']
+    let operation;
+    if (oDl === 1) {
+        operation = '×'
+    } else if (oDl === 0) {
+        operation = Math.random() > 0.5?'+':'-'
+    } else {
+        operation = operationsAll[Math.floor(Math.random() * operationsAll.length)];
+    }
+    if (operation === '+') {
+        ans = parseInt(d1)+parseInt(d2)
+    } else if (operation === '-') {
+        ans = parseInt(d1)-parseInt(d2)
+    } else if (operation === '×') {
+        ans = parseInt(d1)*parseInt(d2)
+    }
+
+    if (Cor===true) {
+        // randomize the placement of the longer digits (if it's the same then it's fine)
+        equation = `${d1} ${operation} ${d2} = ${ans}`
+    } else {
+        equation = `${d1} ${operation} ${d2} = ${parseInt(ans)+parseInt(dNoise)}`
+    }
+    // returning Cor just to ensure backward compatibility when something is
+    return [equation, Cor, operation]
+}
+
+function calScoreMath(dt) {
+    console.log("Math Scoring V2")
+    let rtScore  = (1-Math.pow(2, dt.rt/1000)) / 3
+    if (rtScore > 0) {
+        rtScore = 0
+    } else if (rtScore < -5) {
+        rtScore = -5
+    }
+    let dScore = 1 + ((dt.digitLength-1) * 2) + (dt.operationLevel * 2) + (5 + rtScore)
+    console.log(`rt score: ${rtScore}, total score: ${dScore}`)
+    dScore = Math.floor(dScore)
+    //const dScore = ( ((dt.digitLength) * 1.6) + ((dt.operationLevel)*0.8) - (dt.rt / dt.maxRespTime) ) * 25
+    return dScore
 }
 
 

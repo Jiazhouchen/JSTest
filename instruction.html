@@ -4,12 +4,15 @@
     <title>MEG Study Time Course</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto Condensed">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Oswald">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Rubik">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Bebas Neue">
     <script src="js/jsPsych/jspsych.js"></script>
     <script src="js/jsPsych/plugin-preload.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-auth.js"></script>
     <script src="js/firebase.js"></script>
+    <script src="js/instruct.js"></script>
     <script src="js/init.js"></script>
     <script src="js/utility.js"></script>
     <script src="js/plugin-Gamble.js"></script>
@@ -20,29 +23,32 @@
     <script src="js/plugin-CrossBoard.js"></script>
     <script src="js/plugin-Maze.js"></script>
     <script src="js/table_maze.js"></script>
-    <script src="js/instruct.js"></script>
+    <script src="js/genConditions.js"></script>
+    <script src="js/studyTimeline.js"></script>
     <link href="js/jsPsych/jspsych.css" rel="stylesheet" type="text/css" />
     <link href="css/general.css" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,700,0,200" />
 </head>
 <style>
     .instructionRow{
-        width: 60%;
-        height: 20%;
-        margin: 0 10vw 0 10vw;
-        padding: 0 10% 0 10%;
         display: flex;
+        width: 90%;
+        height: 10%;
+        margin: 0 10vw 0 10vw;
+        padding: 0;
         flex-direction: row;
         flex-wrap: wrap;
         justify-content: space-between;
         align-items: center;
     }
     .instructionRow button{
+        margin: auto;
         color: black;
         font-size: 3vmin;
         border-radius: 10px;
         border: 2px solid black;
-        max-height: 40%;
-        min-width: 30%;
+        max-height: 90%;
+        min-width: 20%;
         animation-duration: 0.2s;
         opacity: 0;
         animation-name: appear;
@@ -64,65 +70,220 @@
         background: #8d9c8a!important;
         border: 2px solid white!important;
     }
+    .gamInstOpt {
+        aspect-ratio: 1/1;
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        border-width: 3px;
+        border-color: #dbcab6;
+        border-radius: 10px;
+        background-color: #ded8ca;
+        margin: 10%;
+    }
+    .gamWrap {
+        position: unset;
+        margin: auto;
+        width: 20%;
+        flex: 0 1;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-around;
+        border-width: 3px;
+        border-color: black;
+        background-color: whitesmoke;
+    }
+    @keyframes colorChange {
+        25% {
+            background-color: #db9a86;
+            color: black;
+            border-color: #b07d6d;
+        }
+        50% {
+            background-color: #ded8ca;
+            color: black;
+            border-color: #ada89c;
+        }
+        75% {
+            background-color: black;
+            color: white;
+            border-color: #8f8f8f;
+        }
+    }
+    @keyframes topChange {
+        25%  {content: '-4';}
+        50%  {content: '0';}
+        75% {content: '-10';}
+    }
+    @keyframes botChange {
+        25%  {content: '3';}
+        50%  {content: '2';}
+        75% {content: '3';}
+    }
+    @keyframes legChange {
+        25%  {content: 'Example: lost points  ';}
+        50%  {content: 'Example: zero points  ';}
+        75%  {content: 'Example: no response  ';}
+    }
+
+    .fbNum {
+        border-radius: 10px;
+        border-width: 5px;
+        font-size: 2.5rem;
+        font-weight: bold;
+        display: flex;
+    }
+    .fbNum p {
+        margin: auto;
+        font-size: 2rem !important;
+    }
+
+    .fbWrap {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+        width: 20%;
+
+    }
+    .fbWrap span {
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin-top: 3%;
+    }
+    .fb {
+        padding: 2%;
+    }
+    .emoTrainDemo {
+        scale: 0.8;
+    }
+    .buttonRowIP {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        max-width: 922px;
+        margin: auto;
+        border-color: black;
+        border-radius: 10px;
+        border-width: 5px;
+        padding: 1%;
+    }
+    .mzWrap {
+        display: flex;
+        justify-content: space-between;
+        padding: 1vh 1vw 1vh 1vw;
+        margin: auto;
+        width: 15vw;
+        border: 5px solid darkgrey;
+        border-radius: 10px;
+    }
+    .mzContain {
+        display: flex;
+        margin: auto;
+        flex-direction: column;
+        justify-content: center;
+    }
+    .mzContain p {
+        font-size: 1rem;
+    }
+    .mzElement {
+        margin: auto;
+        background-color: #c8e6d0;
+        overflow: hidden;
+        border-radius: 10px;
+        aspect-ratio: 1 / 1;
+        font-size: 3rem;
+    }
+    .emoDivIP button {
+        background-color: #F0F0F0;
+        min-height: 4vh;
+        min-width: 10vw;
+        aspect-ratio: unset;
+        color: black;
+        font-size: 1.5vmin;
+        font-weight:bold;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 5px 10px 0 rgba(0, 0, 0, 0.19);
+    }
 </style>
 <body>
-    <div id="wrap" class="wrapLong">
-        <div id="msgBox" class="msgBox"></div>
-        <div id="instructionRow" class="instructionRow"></div>
-        <button id = "finishButton" onclick='window.location= "main.html"+`?tlType=${tlType}`' style="
-            display: none;
-            min-width: 10vmin;
-            padding: 0 2% 0 2%;
-            margin: 3vh 20vw 0 43.5vw
-        "> Start Study </button>
-    </div>
+    <div id="wrap"  class="wrapLong" style="display: flex; flex-direction: column; justify-content: space-evenly; align-items: center">
+        <div id="msgWrapper" class="msgWrapper">
+            <div id="msgLeft" class="msgSide">
+                <span class="material-symbols-rounded">arrow_back_ios_new</span>
+            </div>
+            <div id="msgBox" class="msgBox"></div>
+            <div id="msgRight" class="msgSide">
+                <span class="material-symbols-rounded">arrow_forward_ios</span>
+            </div>
+        </div>
+        <div id="instructionRow" class="instructionRow">
+            <button id = "finishButton"> START </button>
+        </div>
 
+    </div>
+    <div id='display_element' class='jsPsychDE' style="display: none"></div>
 </body>
 <script>
-    const urlPara = new URLSearchParams(window.location.search)
-    let tlType = urlPara.get('tlType')
-    console.log(tlType)
+    window.doingMEG = 'flash'
+    window.photonLog = [];
+    photonSwitch()
+    const indexURLPara = new URLSearchParams(window.location.search)
+    let PROLIFIC_PID = indexURLPara.get('PROLIFIC_PID')
+    if (!PROLIFIC_PID) {
+        PROLIFIC_PID = 'MEG101'
+    }
+    let collectionName = indexURLPara.get('collectionName')
+    let complicated = indexURLPara.get('complicated')
+    console.log(PROLIFIC_PID)
+    console.log(collectionName)
+    console.log(complicated)
+    if (!complicated) {
+        complicated = true
+    } else {
+        complicated = complicated==='true'
+    }
+    if (!collectionName) {
+        collectionName = 'MEGDATA'
+    } 
     let global_config;
-    let instView = {};
-    const listOfGames = ['Gamble', 'Math', 'Gamble II','Math II','Trust','Maze']
-    const functionRow = construct_function_row()
-    functionRow.childNodes[2].remove()
-    functionRow.style.position = 'absolute'
-    functionRow.style.bottom = '-8vmin'
-    functionRow.childNodes[2].setAttribute('iH',`In this section, instruction will be given for each of the tasks.
-    The reason for why we centralize the instruction & practice (instead of before each task) is to save time and
-    maximize number of trials.
-    We should plan on giving some form of reminder (1 page) on what the current task is about, during breaks or between-tasks.
-    This section will be conducted <strong> online </strong> & <strong>outside of scanner</strong>.
-    Use the skip button to skip to the next part.`)
-    functionRow.childNodes[2].style.animation = '1s ease-in-out infinite hasInfo'
-    document.getElementById('wrap').appendChild(functionRow)
-    document.getElementById('msgBox').innerHTML = instMsgBox('init','msgBox')
-    let dSec = 0;
-    for (let lg of listOfGames) {
-        instView[lg] = 0 ;
-        const bt = document.createElement('button')
-        bt.textContent = lg
-        bt.id = lg+'@Button'
-        bt.addEventListener('click',instBtClick)
-        bt.setAttribute('visited', 'no')
-        bt.style.animationDelay = dSec + 's';
-        document.getElementById('instructionRow').appendChild(bt)
-        bt.style.animationPlayState = 'running'
-        dSec += 0.2
+    let practiceCounter = 0;
+    let listOfGames;
+    let tlType;
+    if (!tlType) {
+        tlType = 'behave'
     }
-    if (Object.values(instView).reduce( (a, b) => a + b,0) === Object.values(instView).length) {
-        console.log('works')
-        document.getElementById('finishButton').style.display = 'inline'
+    if (tlType === 'behave') {
+        listOfGames = ['emoRateInfo','emoTrain','Math','Gamble','Trust','Maze']
+        //listOfGames = ['Math']
+        //listOfGames = ['','Maze']
+    } else {
+        listOfGames = ['Gamble', 'Math', 'Gamble II','Math II','Trust','Maze']
     }
-    resetSkipButton()
-    document.getElementById('skipButton').addEventListener('click', ()=> {
-        console.log('works')
-        document.getElementById('finishButton').style.display = 'inline'
-    })
-    console.log(instView)
 
-    document.getElementById('Trust@Button').click()
+    document.getElementById('msgBox').innerHTML = instMsgBox('init','msgBox')
+
+    let  jsPsych = initJsPsych({
+        override_safe_mode: true,
+        display_element: 'display_element',
+    });
+
+    document.getElementById('finishButton').style.animationPlayState = 'running'
+    document.getElementById('finishButton').style.margin = 'auto'
+    document.getElementById('finishButton').addEventListener('click',()=> {
+        document.getElementById('finishButton').remove()
+        instBtClick('Maze',complicated)
+    })
+
+
+
+
+
+
+
+
+
+
 
 </script>
 </html>

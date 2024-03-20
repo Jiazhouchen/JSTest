@@ -43,6 +43,11 @@ function getTimeline(tlType,tlNum,MazeInfo) {
     return [jsPsych, taskProcedure]
 
 }
+
+
+
+
+
 function getTimelineComponent(tlInfo, tlNum, tlType,jsPsych) {
     let [tlComp, tlVb] = tlInfo.split('@')
     let tlx;
@@ -126,55 +131,6 @@ function getTimelineComponent(tlInfo, tlNum, tlType,jsPsych) {
     return tlx
 }
 
-function getStoryInfo() {
-    // The overall idea is that we will all start with a major sad story then reduce in intensity and move on to
-    // a less intensely sad (sometimes just mixed feeling) one right before the first task.
-
-    const tlStories = {
-            '1': { // Math & Gamble
-                '1': {name: 'adollshouse', pName: "A Doll's House",
-                    info: "The theme is parental issues. The story tellers are not happy, and there's something to do with their parents. " +
-                        "Both stories are filled with confusion and resentment. Both ending screams God Bless their therapists."},
-                '2': {name: 'theclosetthatateeverything', pName: "The Closet That Ate Everything"},
-                '3': {name: 'haveyoumethimyet', pName: "Have You Met Him Yet", info: 'The theme here is a satisfying journey to a happy ending.' +
-                        'This pair of stories are delivered in a bright tone. ' +
-                        'With spikes of very specific emotion through out the story, ' +
-                        'they both reached a heart warming conclusion.'},
-                '4': {name: 'adventuresinsayingyes', pName: "Adventures in Saying Yes"},
-                '5': {name: 'legacy', pName: "Legacy", info: 'This pair of stories are tales of confidence, ' +
-                        'a father to his daughter that shares same life struggle, and a young woman gaining confidence at a unexpected place.' +
-                        'Both ends with a bright tone.'},
-                '6': {name: 'naked', pName: "Naked"},
-            },
-            '2': { // Gam II & Trust
-                '1': {name: 'itsabox', pName: "It's a Box", info: "There are no confusion on how we feel about these stories: dark and helpless. " +
-                        "At the end, the story tellers both reached a point where they had made peace with the reality yet you can feel that they " +
-                        "hurt no less."},
-                '2': {name: 'undertheinfluence', pName: "Under the Influence"},
-                '3': {name: 'hangtime', pName: "Hang Time", info: "A pair of wonderful stories.  While one took on a once a life time experience and another take on " +
-                        " daily chores with a new outlook of life, both filled with optimism and excitement throughout the story. " +
-                        "Both told by grown men but full of boy-ish wonder."},
-                '4': {name: 'buck', pName: "Buck"},
-                '5': {name: 'alternateithicatom', pName: "Alternate Ithica Tom", info: "The theme is probably best described as 'mid-life crisis'. " +
-                        "The anchor sentiment is that curiosity, wondering the what ifs for the past. While one eventually made peace and realize that " +
-                        "there's no perfect life choices, another embark on a new journey in life."},
-                '6': {name: 'howtodraw', pName: "How to Draw"},
-            },
-            '3': { // Maze & Math II
-                '1': {name: 'wheretheressmoke', pName: "Where There's Smoke", info: "Here we have two stories " +
-                        "that deal with aftermaths. The trauma is there, the sadness is there but the story tellers are trying to move on." +
-                        "Their solution might not be perfect but that's the best they can do."},
-                '2': {name: 'sloth', pName: "Sloth"},
-                '3': {name: 'tildeath', pName: "'Til Death'", info: "This pair of stories carry a hilarious undertone but deal with " +
-                        "two quiet serious and life changing realizations."},
-                '4': {name: 'souls', pName: "Souls"},
-                '5': {name: 'thatthingonmyarm', pName: "That Thing on my Arm", info: "This is the 'self empowerment' stories. " +
-                        "Two women faced death and disease but won the match. They grew stronger and used this experience to propel further."},
-                '6': {name: 'inamoment', pName: "In a Moment"},
-            },
-        }
-    return tlStories
-}
 
 
 

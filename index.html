@@ -2,158 +2,233 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MEG Study Time Course</title>
+    <title>Welcome to the Study</title>
+    <script src="js/utility.js"></script>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto Condensed">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Oswald">
-    <script src="js/jsPsych/jspsych.js"></script>
-    <script src="js/jsPsych/plugin-preload.js"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Rubik">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Bebas Neue">
+    <link href="css/general.css" rel="stylesheet" type="text/css" />
     <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-auth.js"></script>
-    <script src="js/init.js"></script>
-    <script src="js/utility.js"></script>
-    <script src="old%20js/EmoGamblingTrial.js"></script>
-    <script src="js/plugin-TrustGame.js"></script>
-    <script src="js/plugin-RateEmotion.js"></script>
-    <script src="js/plugin-Compete.js"></script>
-    <script src="js/plugin-CrossBoard.js"></script>
-    <script src="js/plugin-Maze.js"></script>
-    <script src="js/table_maze.js"></script>
-    <link href="js/jsPsych/jspsych.css" rel="stylesheet" type="text/css" />
-    <link href="css/general.css" rel="stylesheet" type="text/css" />
+    <script src="js/firebase.js"></script>
 </head>
 <style>
-    .tlGraph {
-        font-family: "Roboto Condensed", sans-serif;
-        margin: 5vh 10vw 0 10vw;
-        position: absolute;
-        display: flex;
-        flex-direction: row;
-        padding: 10px;
-        width: 77%;
-        flex-wrap: wrap;
-        border: 10px solid slategrey;
-        border-radius: 20px;
+    .consentBox {
+        margin: auto;
+        height: 50%;
+        width: 76%;
+        border-width: 3px;
+        border-radius: 10px;
+        border-color: steelblue;
+        padding: 2%;
+        overflow-y: scroll;
         background-color: white;
-        opacity: 0;
-        box-shadow: 10px 10px 20px lightgrey;
-        z-index: 992;
     }
-    .tlTitle {
-        min-width: 100%;
-        font-size: 150%;
+    .consentBox a {
+        color: steelblue;
         font-weight: bold;
-        margin: 5px 5px 5px 15px;
     }
-    .tlComponent {
+    .consentBox h1 {
+        margin: auto;
+        font-size: 1.5rem;
         text-align: center;
-        align-items: center;
-        border-radius: 20px;
-        font-size: 1vmin;
-        border-width: 5px;
-        justify-content: center;
-        margin: 5px;
     }
-    .tlComponent p {
-        color: dimgrey;
+
+    .checkConsent {
+        width: 76%;
+        font-size: 1.2rem;
+        gap: 0.1rem;
+        margin-top: 1%;
+        margin-bottom: 1%;
     }
-    .tlSetup {
-        flex: 25%;
-        max-width: 25%;
-        border-color: black;
-    }
-    .tlStory {
-        flex: 20%;
-        max-width: 20%;
-        border-color: gold;
-    }
-    .tlCali {
-        flex: 3.3%;
-        max-width: 3.3%;
-        overflow-wrap: break-word;
-        border-color: purple;
-    }
-    .tlCali h1 {
-        font-size: 100%;
+    #confirmButton {
         margin: auto;
-        padding-top: 60%;
-    }
-    .tlBreak {
-        flex: 5%;
-        max-width: 5%;
-        overflow-wrap: break-word;
-        border-color: darkorange;
-    }
-    .tlBreak h1 {
-        font-size: 150%;
-        margin: auto;
-        padding-top: 40%;
-        padding-bottom: 10%;
-    }
-    .tlTaskShort {
-        flex: 10%;
-        max-width: 10%;
-        border-color: cornflowerblue;
-    }
-    .tlTaskLong {
-        flex: 33%;
-        max-width: 33%;
-        border-color: cornflowerblue;
+        width: max-content;
+        aspect-ratio: 5/1;
+        margin-top: 1%;
+        margin-bottom: 1%;
     }
 
 </style>
 <body>
-    <div id="wrap" class="wrapLong">
-        <div id = 'tlCondensed' class = 'tlGraph'>
-            <div class="tlTitle">2 hours session</div>
-            <div class="tlComponent tlSetup"><h1>Set up</h1><p>15 min</p></div>
-            <div class="tlComponent tlStory"><h1>Story</h1><p>~12 min</p></div>
-            <div class="tlComponent tlCali"><h1>Calibration</h1><p>2 min</p></div>
-            <div class="tlComponent tlStory"><h1>Story</h1><p>~12 min</p></div>
-            <div class="tlComponent tlBreak"><h1>Break</h1><p>3 min</p></div>
-            <div class="tlComponent tlCali"><h1>Calibration</h1><p>2 min</p></div>
-            <div class="tlComponent tlTaskShort"><h1>Task</h1><p>6 min</p></div>
-            <div style="flex: 6%; height: 1%; width: 5%"></div>
-            <div class="tlComponent tlCali"><h1>Calibration</h1><p>2 min</p></div>
-            <div class="tlComponent tlStory"><h1>Story</h1><p>~12 min</p></div>
-            <div class="tlComponent tlCali"><h1>Calibration</h1><p>2 min</p></div>
-            <div class="tlComponent tlStory"><h1>Story</h1><p>~12 min</p></div>
-            <div class="tlComponent tlBreak"><h1>Break</h1><p>3 min</p></div>
-            <div class="tlComponent tlCali"><h1>Calibration</h1><p>2 min</p></div>
+    <div id="wrap"  class="wrapLong" style="display: flex; flex-direction: column; justify-content: flex-start; height: 97vh; align-items: center">
+        <h1>Welcome to our study.</h1>
+        <p>Before we start, we would need your informed consent to participate. Please read the following throughly and carefully.</p>
+        <div id="consentBox" class="consentBox">
+            <h1>Online studies in learning, decision-making and cognition: <br>Information and consent</h1>
 
-            <div class="tlComponent tlTaskShort"><h1>Task</h1><p>6 min</p></div>
-            <div style="flex: 20%; height: 20%; width: 20%"></div>
-            <div class="tlComponent tlCali"><h1>Calibration</h1><p>2 min</p></div>
-            <div class="tlComponent tlStory"><h1>Story</h1><p>~12 min</p></div>
-            <div class="tlComponent tlCali"><h1>Calibration</h1><p>2 min</p></div>
-            <div class="tlComponent tlStory"><h1>Story</h1><p>~12 min</p></div>
+            <h3>Who is conducting this research study?</h3>
+            <p>This research is being conducted by the Division of Psychiatry
+                and the Max Planck UCL Centre for Computational Psychiatry and Ageing Research
+                at University College London, London, UK.
+                The lead researchers for this project is <a href="mailto:q.huys@ucl.ac.uk">Professor Quentin Huys</a>.
+                This study has been approved by the UCL Research Ethics Committee (project ID number 16639/001)
+                and is funded by the Max Planck Society,
+                the Masason Foundation and the UCL Institute of Mental Health.</p>
+
+            <h3>What is the purpose of this study?</h3>
+            <p>We are interested in how the adult brain controls learning and decision-making.
+                This research aims to provide insights into how the healthy brain works to
+                help us understand the causes of a number of different medical conditions.</p>
+
+            <h3>Who can participate in the study?</h3>
+            <p>You must be 18 or over to participate in this study.></p>
+
+            <h3>What will happen to me if I take part?</h3>
+            <p>You will play one or more online computer games,
+                which will last approximately 45 minutes.
+                You will receive at least 8.21 GBP per hour (about 6.16 GDP for a 45 minutes session) for helping us out
+                with an opportunity for an additional bonus depending on your choices.
+                The amount may vary with the decisions you make in the games.
+                Remember, you are free to withdraw at any time without giving a reason.
+            </p>
+
+            <h3>What are the possible disadvantages and risks of taking part?</h3>
+            <p>The task will you complete does not pose any known risks.</p>
+
+
+            <h3>What are the possible benefits of taking part?</h3>
+            <p>While there are no immediate benefits to taking part,
+                your participation in this research will help us understand
+                how people make decisions and this could have benefits for our understanding of mental health problems.
+            </p>
+
+            <h3>Complaints</h3>
+            <p>If you wish to complain or have any concerns about any aspect of the way you
+                have been approached or treated by members of staff,
+                then the research UCL complaints mechanisms are available to you.
+                In the first instance, please talk to the researcher or the
+                chief investigator (<a href="mailto:q.huys@ucl.ac.uk">Professor Quentin Huys</a>) about your complaint.
+                If you feel that the complaint has not been resolved satisfactorily,
+                please contact the <a href="mailto:ethics@ucl.ac.uk">UCL Research Ethics Committee</a>.
+            </p>
+
+            <p> If you are concerned about how your personal data are being processed,
+                please contact the data controller who is <a href="mailto:data-protection@ucl.ac.uk">UCL</a>.
+                If you remain unsatisfied, you may wish to contact the Information Commissioner Office (ICO).
+                Contact details, and details of data subject rights, are available on the
+                <a href="https://ico.org.uk/for-organisations/data-protection-reform/overview-of-the-gdpr/individuals-rights">ICO website</a>.
+            </p>
+
+            <h3>What about my data?</h3>
+            <p>This local privacy notice sets out the information that applies to this particular study.
+                Further information on how UCL uses participant information
+                can be found in our general privacy notice.
+                For participants in research studies, click <a href="https://www.ucl.ac.uk/legal-services/privacy/ucl-general-research-participant-privacy-notice">here</a>.
+                The information that is required to be provided to participants under
+                data protection legislation (GDPR and DPA 2018) is provided across both the local and general privacy notices.
+            </p>
+
+            <p>To help future research and make the best use of the research data you have given us
+                (such as answers to questionnaires) we may keep your research data indefinitely and share these.
+                The data we collect will be shared and held as follows:
+                <ul>
+                    <li>In publications, your data will be anonymised, so you cannot be identified.</li>
+                    <li>In public databases, your data will be anonymised (your personal details will be removed and a code used e.g. 00001232, instead of your User ID)</li>
+                </ul>
+            </p>
+
+            <p>Personal data is any information that could be used to identify you,
+                such as your User ID.
+                When we collect your data,
+                your User ID will be replaced with a non-identifiable random ID number.
+                No personally identifying data will be stored.
+                If there are any queries or concerns please do not hesitate to contact <a href="mailto:q.huys@ucl.ac.uk">Professor Quentin Huys</a>.
+            </p>
+
         </div>
-        <div id = 'tlBalanced' class = 'tlGraph'>
-            <div class="tlTitle">2 hours session</div>
-            <div class="tlComponent tlSetup"><h1>Set up</h1><p>15 min</p></div>
-            <div class="tlComponent tlStory"><h1>Story</h1><p>~12 min</p></div>
-            <div class="tlComponent tlCali"><h1>Calibration</h1><p>2 min</p></div>
-            <div class="tlComponent tlStory"><h1>Story</h1><p>~12 min</p></div>
-            <div class="tlComponent tlCali"><h1>Calibration</h1><p>2 min</p></div>
-            <div class="tlComponent tlBreak"><h1>Break</h1><p>3 min</p></div>
-            <div class="tlComponent tlTaskLong"><h1>Task</h1><p>20 min</p></div>
-            <div class="tlComponent tlCali"><h1>Calibration</h1><p>2 min</p></div>
-            <div class="tlComponent tlStory"><h1>Story</h1><p>~12 min</p></div>
-            <div class="tlComponent tlCali"><h1>Calibration</h1><p>2 min</p></div>
-            <div class="tlComponent tlStory"><h1>Story</h1><p>~12 min</p></div>
-            <div class="tlComponent tlCali"><h1>Calibration</h1><p>2 min</p></div>
-            <div class="tlComponent tlBreak"><h1>Break</h1><p>3 min</p></div>
-            <div class="tlComponent tlTaskLong"><h1>Task</h1><p>20 min</p></div>
-        </div>
+        <form id="checkConsent" class="checkConsent">
+            <input type="checkbox" id="c1" name="c1">
+            <label for="c1"> I confirm I am over 18 years old </label><br>
+
+            <input type="checkbox" id="c2" name="c2">
+            <label for="c2"> I have read the information above, and understand what the study involves.</label><br>
+
+            <input type="checkbox" id="c3" name="c3">
+            <label for="c3"> I understand that my anonymised/pseudonymised personal data can be shared with others for future research, shared in public databases and in scientific reports. </label><br>
+
+            <input type="checkbox" id="c4" name="c4">
+            <label for="c4"> I understand that I am free to withdraw from this study at any time without giving a reason and this will not affect my future medical care or legal rights. </label><br>
+
+            <input type="checkbox" id="c5" name="c5">
+            <label for="c5"> I understand the potential benefits and risks of participating, the support available to me should I become distressed during the research, and who to contact if I wish to lodge a complaint. </label><br>
+
+            <input type="checkbox" id="c6" name="c6">
+            <label for="c6"> I understand the inclusion and exclusion criteria in the Information Sheet. I confirm that I do not fall under the exclusion criteria. </label><br>
+
+            <input type="checkbox" id="c7" name="c7">
+            <label for="c7"> I agree that the research project named above has been explained to me to my satisfaction and I agree to take part in this study. </label><br>
+
+            <div id='buttonToGo' style="display: none">
+                <button id="confirmButton" type="submit">Confirm and Start Study</button>
+            </div>
+
+        </form>
+
+
+
+
+
+
+
     </div>
-    <div id="veil" class="veil">
-
+    <div id="display_element"  class="jsPsychDE" style="display: flex">
     </div>
 </body>
-<script>;
-    let global_config = {};
-    // set up the welcome page:
-    welcome_const_ele();
+<script>
+    const indexURLPara = new URLSearchParams(window.location.search)
+    let PROLIFIC_PID = indexURLPara.get('PROLIFIC_PID')
+    let complicated = indexURLPara.get('complicated')
+    let collectionName = 'PilotSimple'
+    if (!complicated) {
+        complicated = false
+    }
+    console.log(PROLIFIC_PID)
+    const form = document.querySelector('form');
+    form.addEventListener('change', function(e) {
+        let toN = 0;
+        for (let i = 1; i <= 7; i++) {
+            if (document.getElementById(`c${i}`).checked) {
+                toN++
+            }
+        }
+        console.log(`${toN} out of 7`)
+        if (toN >= 7) {
+            document.getElementById('buttonToGo').style.display = 'flex'
+        }
+    });
+    if (!PROLIFIC_PID) {
+        document.getElementById('display_element').innerHTML = `
+                        <div id='msgFIN' class="msgBox" style="margin: auto;display: flex; flex-direction: column; justify-content: space-around; align-items: center">
+                            <h1>No Prolific PID detected</h1>
+                            <h2>Please only join via provided Prolific link.</h2>
+                        </div>
+                        `
+    } else {
+        document.getElementById('display_element').style.display = 'none'
+    }
 
+    document.getElementById('checkConsent').addEventListener('submit',function (e) {
+        e.preventDefault()
+        document.getElementById('display_element').innerHTML = `
+                        <div id='msgFIN' class="msgBox" style="margin: auto;display: flex; flex-direction: column; justify-content: space-around; align-items: center">
+                            <h1>Please wait... Redirecting...</h1>
+                        </div>
+                        `
+        console.log(get_config(window))
+        const status = db.collection(collectionName).doc(PROLIFIC_PID).set({
+            deviceInfo: get_config(window),
+            versionContorl: 'v1.0-s',
+            consentCompleted: performance.timeOrigin + performance.now(),
+            timeOrigin: performance.timeOrigin,
+        })
+
+        status.then(()=>{
+            location.href = `instruction.html?PROLIFIC_PID=${PROLIFIC_PID}&collectionName=${collectionName}&complicated=${complicated}`
+        })
+
+    })
 </script>
 </html>

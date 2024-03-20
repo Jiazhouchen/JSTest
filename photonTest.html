@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en" jspsych="present">
+<head>
+    <meta charset="UTF-8">
+    <script src="js/utility.js"></script>
+    <link href="css/general.css" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto Condensed">
+    <title>Testing the photodial</title>
+</head>
+<style>
+    body {
+        display: flex;
+        justify-content: space-around;
+        font-family: "Roboto Condensed", sans-serif;
+    }
+    .xTop {
+        position: absolute;
+        top: 0;
+        left: 50vw;
+        font-size: 8rem;
+        padding: 0;
+        margin: 0;
+        line-height: 6rem;
+    }
+    .msgBox {
+        margin: auto;
+        padding-top: 40vh;
+    }
+</style>
+<body>
+    <div class="msgBox">
+
+    </div>
+</body>
+<script>
+    photonSwitch()
+    window.doingMEG = 'flash'
+    window.photonLog = [];
+    photonSwitch('off')
+    const pssI = setInterval(function () {
+        photonSwitch('on',200)
+    },1000)
+</script>
+</html>

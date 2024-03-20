@@ -10,19 +10,67 @@ function happen_p(p){
     }
 }
 
-/**
- * JavaScript Client Detection
- * (C) viazenetti GmbH (Christian Ludwig)
- */
+function resolveAfter(delay, value,jsPsych) {
+    if (jsPsych) {
+        return new Promise(resolve => {
+            setTimeout(() => resolve(value), delay);
+        });
+    } else {
+        return new Promise(resolve => {
+            jsPsych.pluginAPI.setTimeout(() => resolve(value), delay);
+        });
+    }
+
+}
+function initTiming() {
+    const ti = {
+        init: 500,
+        selDur: 1000,
+        preFb: 1000,
+        fbDur:2000,
+        maxRespTime: 4000,
+    }
+    return ti
+}
+
+
+function initData(tskName) {
+    const dt = {
+        taskName: tskName,
+        // time related;
+        initTime: 0,
+        stimOnset: 0,
+        keyPressOnset: 0,
+        fbOnset: 0,
+        endTime: 0,
+        // contingency
+        contingency: {},
+        difficulty: '',
+        twist: '',
+        // response related
+        key: '',
+        rt: 0,
+        respType: '',
+        // feedback related
+        fb: '',
+        pts: '',
+    }
+    return dt
+}
+
 function get_config(window) {
+    /**
+     * JavaScript Client Detection
+     * (C) viazenetti GmbH (Christian Ludwig)
+     */
     {
-        var unknown = '-';
+        let unknown = '-';
 
         // screen
-        var screenSize = '';
+        let screenSize = '';
         if (screen.width) {
-            width = (screen.width) ? screen.width : '';
-            height = (screen.height) ? screen.height : '';
+            const width = (screen.width) ? screen.width : '';
+            const height = (screen.height) ? screen.height : '';
             screenSize += '' + width + " x " + height;
         }
 
@@ -186,20 +234,21 @@ function get_config(window) {
                 flashVersion = unknown;
             }
         }
+        return {
+            screen: screenSize,
+            browser: browser,
+            browserVersion: version,
+            browserMajorVersion: majorVersion,
+            mobile: mobile,
+            os: os,
+            osVersion: osVersion,
+            cookies: cookieEnabled,
+            flashVersion: flashVersion,
+            userAgent: navigator.userAgent,
+        };
     }
 
-    window.device_info = {
-        screen: screenSize,
-        browser: browser,
-        browserVersion: version,
-        browserMajorVersion: majorVersion,
-        mobile: mobile,
-        os: os,
-        osVersion: osVersion,
-        cookies: cookieEnabled,
-        flashVersion: flashVersion,
-        userAgent: navigator.userAgent,
-    };
+
 };
 
 function unique(x) {
@@ -253,8 +302,6 @@ function flatten_array(a) {
     return aflat
 }
 
-
-
 function sample(arx){
     return arx[Math.floor(Math.random() * arx.length)];
 }
@@ -277,13 +324,6 @@ function shuffle(array) {
     return array;
 }
 
-function switchVeil(veil){
-    if (veil) {
-        if (veil.style.display === 'inline') {
-
-        }
-    }
-}
 
 function frac_hack(x, assign_back){
     if (typeof x === 'string' || x instanceof String) {
@@ -371,11 +411,307 @@ function ms2MinNSec(millis) {
     return [minutes, seconds]
 }
 function resetSkipButton() {
-    let skipButton = document.getElementById("skipButton");
+    // too lazy to change all that, just do a wrapper and generalize this;
+    return resetElement('skipButton')
+}
+
+function resetElement(elementID) {
+    let element = document.getElementById("elementID");
     let new_element;
-    if (skipButton) {
-        new_element = skipButton.cloneNode(true);
-        skipButton.parentNode.replaceChild(new_element, skipButton);
+    if (element) {
+        new_element = element.cloneNode(true);
+        element.parentNode.replaceChild(new_element, element);
     }
     return new_element
+}
+
+function purgeChildren(elementID) {
+    const ele = document.getElementById(elementID);
+    while (ele.firstChild) {
+        ele.removeChild(ele.lastChild);
+    }
+}
+
+function standardFeedback(uChoice, uPoints, cfChoice, cfPoints, noResp, cSn, actionWord,fullV, CounterFactual) {
+    const fb = document.createElement('div')
+    let symb = ''
+    if (!actionWord) {
+        actionWord = 'chose'
+    }
+    if (typeof cSn === 'undefined') {
+        if (noResp) {
+            cSn = 3
+        } else if (uPoints > 0 ) {
+            cSn = 0
+        } else if (uPoints < 0) {
+            cSn = 1
+        } else if (uPoints === 0) {
+            cSn = 2
+        }
+    }
+    const symbList = ['✔', '✖', '◎','--']
+    const colorScheme = ['#acdb86','#db9a86','#ded8ca','black']
+    const colorDarkScheme = ['#8fb570','#b07d6d','#ada89c','#8f8f8f']
+    const colorDarkerScheme = ['#506143','#614840','#59564f','#b0b0b0']
+    const colorFont = ['black','black','black','white']
+
+    if (fullV) {
+        fb.className = 'fb'
+        fb.style.backgroundColor = colorScheme[cSn]
+        fb.innerHTML = `
+        <div>
+            ${
+            noResp ? `<p><strong>No Response</strong></p>`:`<p>You ${actionWord} <strong>${uChoice}</strong></p>`
+        }
+            <p>You got <strong>${uPoints}</strong> points</p>
+        </div>
+        <div class="cfFB">
+            <p>If you had ${actionWord} <strong>${cfChoice}</strong></p>
+            <p>You would get <strong>${cfPoints}</strong> points</p>
+        </div>
+        `
+
+    } else if (CounterFactual) {
+        console.log('FEEDBACK ON')
+        fb.style.backgroundColor = 'transparent'
+        fb.className = 'fb fbCompact'
+        fb.innerHTML = `
+        <div class="fbNum" style="color: ${colorFont[cSn]}; border-color: ${colorDarkScheme[cSn]}; background-color: ${colorScheme[cSn]}">
+            <p><strong>${uPoints}</strong></p>
+        </div>
+        <div class="fbNum" style="border-color:transparent; background-color: #dbdbdb;">
+            <p><strong>${cfPoints}</strong></p>
+        </div>
+        `
+    } else {
+
+        console.log('SIMPLE FEEDBACK ON')
+        fb.style.backgroundColor = 'transparent'
+        fb.className = 'fb fbCompact'
+        fb.innerHTML = `
+        <div class="fbNum" style="color: ${colorFont[cSn]}; border-color: ${colorDarkScheme[cSn]}; background-color: ${colorScheme[cSn]}">
+            <p style="color: ${colorDarkerScheme[cSn]}"><strong>${symbList[cSn]}</strong></p>
+        </div>
+        `
+    }
+
+    return fb
+}
+
+function capFirst(s) {
+    return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function photonSwitch(className, duration) {
+
+    if (window.doingMEG) {
+        if (!window.photonLog) {
+            window.photonLog = []
+        }
+        let photonEL = document.getElementById('photonEL')
+        if (!photonEL) {
+            console.log('text')
+            photonEL = document.createElement('div')
+            photonEL.id = 'photonEL'
+            photonEL.className = 'photonEL'
+            document.body.appendChild(photonEL)
+        }
+        if (window.doingMEG === 'switch') {
+            if (className) {
+                if (className === 'revert' || className === 'off') {
+                    photonEL.className = 'photonEL'
+                    window.photonLog.push({
+                        time: performance.now(),
+                        origin: performance.timeOrigin,
+                        type: 'off',
+                        taskName: taskName,
+                    })
+                } else {
+                    photonEL.className = `photonEL ${className}`
+                    window.photonLog.push({
+                        time: performance.now(),
+                        origin: performance.timeOrigin,
+                        type: className,
+                        taskName: taskName,
+                    })
+                }
+
+            }
+        }
+        if (window.doingMEG === 'flash') {
+            if (className) {
+
+                photonEL.className = 'photonEL'
+                photonEL.className = 'photonEL on'
+                let timeOn = performance.now()
+                if (!duration) {
+                    if (className === 'trial') {
+                        duration = 150
+                    } else {
+                        duration = 100
+                    }
+                }
+                //let myEvent = new CustomEvent('jspsych', {
+                //    detail:{
+                //        target : 'parallel',
+                //        action : 'trigger',
+                //        payload: 255
+                //    }
+                //});
+                //document.dispatchEvent(myEvent);
+                setTimeout(function () {
+                    photonEL.className = 'photonEL'
+                    window.photonLog.push({
+                        timeOff: performance.now(),
+                        timeOn: timeOn,
+                        duration: duration,
+                        origin: performance.timeOrigin,
+                        type: 'flash',
+                        tagName: className,
+                    })
+                    console.log(window.photonLog)
+                },duration)
+
+
+            }
+
+        }
+
+    } else {
+        console.log('MEG triggers disabled')
+    }
+
+}
+
+function saveData(name, data){
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', 'write_data.php'); // 'write_data.php' is the path to the php file described above.
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.send(JSON.stringify({filedata: data}));
+}
+
+function onExpEnd(dt, MEG,ptInfo,jsPsych) {
+    window.successFinish = true
+    const gdt = jsDt2Fire(dt)
+    console.log(gdt)
+    const de = document.getElementById('display_element')
+    if (MEG === true) {
+
+        setTimeout(() => {
+            photonSwitch('on',1000)
+            de.innerHTML = `
+                        <div id='msgFIN' style="display: flex; flex-direction: column; justify-content: space-around">
+                            <h1 style="margin: auto;">We are done with this block. Please take a short Break.</h1>
+                            <h1 style="margin: auto;">We will resume shortly. </h1>
+                            <button style="margin: auto;" onclick="resetMEG()"> Continue </button>
+                        </div>
+                        `
+            setTimeout(()=> {
+                window.ptInfo['triggerTiming'] = window.photonLog
+                jsPsych.data.addProperties(window.ptInfo)
+                jsPsych.data.get().localSave('csv', `MEG_${window.ptInfo.ID}_${window.ptInfo.Session}_${window.ptInfo.Block}_COMPLETE.csv`);
+                const ie = db.collection('MEGP1').doc(window.ptInfo.ID).collection(window.ptInfo.Session).doc(window.ptInfo.Block).set(gdt)
+            }, 1500)
+
+        }, 1000)
+
+    } else {
+        de.innerHTML = `
+                        <div id='msgFIN' style="display: flex; flex-direction: column; justify-content: space-around">
+                            <h1 style="margin: auto;">All done! Thank you for your participation!</h1>
+                            <h1 style="margin: auto;">Please wait and DO NOT CLOSE the browser window, your data is uploading... </h1>
+                        </div>
+                        `
+    }
+}
+
+function resetMEG() {
+    const de = document.getElementById('display_element')
+    de.innerHTML = ``
+    de.style.display = 'none'
+    document.getElementById('msgBox').innerHTML = `
+        <h1> <strong>ID:</strong> ${window.ptInfo.ID} </h1>
+        <h1> <strong>Session:</strong> ${window.ptInfo.Session} </h1>
+    `
+    document.getElementById('loadingText').style.display = 'none'
+    document.getElementById('optionRow').style.display = 'flex'
+}
+
+function jsDt2Fire(dt) {
+    let gdt = {};
+    for (let i=0; i<dt.trials.length; i++) {
+        gdt[String(i)] = dt.trials[i]
+    }
+    return gdt
+}
+
+class keyMap {
+    constructor(expType) {
+        this.expType = expType
+        if (!expType) {
+            if (window.doingMEG) {
+                this.expType = 'MEG'
+            } else {
+                this.expType = 'behave'
+            }
+        }
+        this.keymap = new Map()
+        if (this.expType === 'behave') {
+            this.keymap.set('a','left')
+            this.keymap.set('w','up')
+            this.keymap.set('d','right')
+            this.keymap.set('s','down')
+
+            this.keymap.set('arrowup','up')
+            this.keymap.set('arrowright','right')
+            this.keymap.set('arrowleft','left')
+            this.keymap.set('arrowdown','down')
+
+            this.keymap.set(' ','select')
+            this.keymap.set('enter','confirm')
+        } else if (this.expType === 'MEG') {
+            // MEG set up
+            this.keymap.set('2','up')
+            this.keymap.set('3','down')
+            this.keymap.set('1','left')
+            this.keymap.set('4','right')
+
+            this.keymap.set('6','select')
+            this.keymap.set('8','confirm')
+            this.keymap.set('0','confirm')
+            this.keymap.set('0','confirm')
+        } else {
+	    this.keymap.set('1','up')
+            this.keymap.set('2','down')
+            this.keymap.set('6','left')
+            this.keymap.set('7','right')
+
+            this.keymap.set('3','select')
+            this.keymap.set('4','confirm')
+            this.keymap.set('8','confirm')
+            this.keymap.set('9','confirm')
+	}
+    }
+
+    allowedKeys(allowedList) {
+        this.allkeys = []
+        if (allowedList) {
+            for (const [k, v] of this.keymap) {
+                if (allowedList.includes(v)) {
+                    this.allkeys.push(k)
+                }
+            }
+        } else {
+            for (const [k, v] of this.keymap) {
+                this.allkeys.push(k)
+            }
+        }
+        return this.allkeys
+    }
+
+    getAction(key) {
+        return this.keymap.get(key.toLowerCase())
+    }
+
+
 }

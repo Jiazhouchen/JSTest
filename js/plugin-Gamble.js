@@ -31,6 +31,14 @@ jsPsychGamble = (function(jspsych) {
                     gam_2: -2,
                 },
             },
+            difficulty: {
+                type: jspsych.ParameterType.STRING,
+                default: '',
+            },
+            twist: {
+                type: jspsych.ParameterType.STRING,
+                default: '',
+            },
             win: {
                 type: jspsych.ParameterType.BOOL,
                 pretty_name: 'winning',
@@ -38,60 +46,71 @@ jsPsychGamble = (function(jspsych) {
             },
             maxRespTime: {
                 type: jspsych.ParameterType.INT,
-                default: 5000,
+                default: -1,
+            },
+            oldFb: {
+                type: jspsych.ParameterType.BOOL,
+                default: false,
             }
         }
     }
 
     class GamblePlugin {
-
         constructor(jsPsych) {
             this.jsPsych = jsPsych;
             this.timing = {
-                fade: 0,
-                intro: 200,
-                selDur: 500,
-                fbDur:2000,
-                iti:0,
+                maxRespTime: 5000,
+                init: 500,
+                selDur: 1000,
+                preFb: 500,
+                fbDur:1000,
             }
+            this.keyMap = new keyMap()
+            this.data = initData('Gamble')
         }
 
         trial(display_element, trial) {
-            trial.jsPsych = this.jsPsych
+            this.jsPsych.pluginAPI.clearAllTimeouts()
+            this.jsPsych.pluginAPI.cancelAllKeyboardResponses()
             window.onbeforeunload = function () {
                 window.scrollTo(0, 0);
             }
-
-            resetSkipButton()
-            document.getElementById('skipButton').addEventListener('click',()=> {
-                alert("Skipping entire task block")
-                this.jsPsych.endCurrentTimeline()
-                this.jsPsych.finishTrial()
-                this.jsPsych.pluginAPI.cancelAllKeyboardResponses()
-                this.jsPsych.pluginAPI.clearAllTimeouts()
-            })
-
-            //No longer use in module generation, instead the plugIns are exclusively used for display purpose;
+            this.data.initTime = performance.now()
+            if (trial.twist !== '') {
+                trial.switch = trial.twist === 'true'
+            }
+            if (trial.maxRespTime > 0) {
+                this.timing.maxRespTime = trial.maxRespTime
+            }
+            this.data.difficulty = trial.difficulty
+            this.data.twist = trial.twist
+            this.data.contingency = {
+                opt: trial.opt,
+                switch: trial.switch,
+                win: trial.win,
+                whichSide: trial.whichSide,
+            }
+            this.oldFb = trial.oldFb
 
             display_element.innerHTML = this.initGamPage()
-
-            const stat1 = this.drawGamOptions(display_element,trial)
-
+            const stat1 = this.drawGamOptions()
+            console.log(this.keyMap.allowedKeys(['left','right']))
             stat1.then(()=>{
-                trial.initTime = performance.now()
+                document.getElementById('veil').style.display = 'none'
+                photonSwitch('gam-stim')
+                this.data.stimOnset = performance.now()
+                console.log(this.data)
                 this.jsPsych.pluginAPI.getKeyboardResponse({
-                    callback_function: (e) => {
-                        this.gamKeypress(e, trial)
-                    },
-                    valid_responses: ['j','J','f','F'],
+                    callback_function: this.gamKeypress,
+                    valid_responses: this.keyMap.allowedKeys(['left','right']),
                     rt_method: 'performance',
                     persist: false,
                     allow_held_key: false
                 });
 
-                this.jsPsych.pluginAPI.setTimeout((e) => {
-                    this.gamKeypress(e, trial)
-                }, trial.maxRespTime);
+                this.jsPsych.pluginAPI.setTimeout(() => {
+                    this.gamKeypress('')
+                }, this.timing.maxRespTime);
 
             })
         }
@@ -100,38 +119,74 @@ jsPsychGamble = (function(jspsych) {
             let html = ''
             html += `
             <style>
-                div.option_wrapper {
+                .wrap  {
+                   display: flex;
+                   flex-direction: column;
+                   justify-content: space-around;
+                }
+                
+                
+                .optionBox {
+                    margin: auto;
+                    display: flex;
+                    flex-direction: row;
+                    justify-content: space-around;
+
+                    width: 85%;
+                    height: 80%;
+                }
+                .optionRow h2 {
+                    margin: 0;
                     position: absolute;
-                    top: 1vw;
-                    left: 1vw;
-                    width: 98vw;
-                    height: 48vw;
+                    bottom: 0;
+                }
+                .optionSide {
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+                }
+                .optionSide h2 {
+                    margin-top: auto;
+                }
+                .optionSel {
+                    display: flex;
+                    flex-direction: column;
+                    aspect-ratio: auto 1/1.7;
+                    margin: auto;
+                    max-height: 80%;
+                    min-height: 80%;
+                    justify-content: space-between;
+                    border: 10px solid transparent;
                     border-radius: 40px;
                 }
-                div.g_helper_text {
-                    position: absolute;
-                    bottom: 5%;
-                    left: 10%;
-                    width: 80%;
-                    height: 10%;
-                    font-size: 1em;
-                    text-align: center;
-                   }
-                div.gam_opt {
-                    position: absolute;
-                    width: 70%;
-                    height: 40%;
-                    right: 15%;
+                
+                .helperTxt {
+                    position: relative;
+                    bottom: 0;
+                    font-size: 2rem;
+                    font-weight: bold;
+                   
+                }
+                
+                .gamOpt {
+                    display: flex;
+                    aspect-ratio: auto 1/1;
                     border-radius: 20px;
                     background-color: #ded8ca;
-                    font-size: 10vw;
-                    font-weight: 900;
-                    text-align: center;
-                    vertical-align: middle;
-                    line-height: 16vw;
-                    opacity: 0%;
+                    width: 65%;
+                    margin: auto;
                     box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
                 }
+                .gamOpt * {
+                    margin: auto;
+                    font-size: 7rem;
+                    font-weight: 900;
+                }
+                .selBox {
+                    border: 10px solid black;
+                    border-radius: 40px;
+                }
+                
                 div.g_gam_sel {
                     position: absolute;
                     top: 1%;
@@ -147,30 +202,25 @@ jsPsychGamble = (function(jspsych) {
                     border-radius: 40px;
                 }
                 div.g_fb_box {
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
                     position: absolute;
                     font-family: "Oswald", sans-serif; 
-                    top: 20%;;
+                    padding: 2%;
+                    top: 20%;
                     left: 25%;
-                    width: 50%;
-                    height: 40%;
+                    min-width: 50%;
                     font-size: 5rem;
                     border-radius: 40px;
-                    opacity: 0%;
+                    line-height: 5rem;
+                    opacity: 0;
                     transition-timing-function: ease-in;
                     box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
                 }
                 .points {
                     font-size: 6rem;
                 }
-                h1.g_fb_box{
-                    font-size: 7rem;
-                    font-weight: 1000;
-                    line-height: 4vw;
-                    text-align: center;
-                    vertical-align: middle;
-                }
-                
-        
                 @keyframes sel_confirm {
                     from {border-color: #dbcab6;}
                     to {border-color:#d6954b}
@@ -206,291 +256,203 @@ jsPsychGamble = (function(jspsych) {
                 }
             </style>
             <body>
-                
+                <div id="gambleWrap" class="wrap">
+                    
+                    <div id="optionBox" class="optionBox">
+                        <div class="optionSide">
+                            <div id="optionLeft" class="optionSel"></div>
+                            <div class="helperTxt">Press LEFT key</div>
+                        </div>
+                        <div class="optionSide">
+                            <div id="optionRight" class="optionSel"></div>
+                            <div class="helperTxt">Press RIGHT key</div>
+                        </div>
+                    </div>
+                        
+                        
+                    </div>
+                    
+                </div>
+                <div id="veil" class="veil">
+                    
+                </div>
             </body>
             `
             return html
         }
 
-        drawGamOptions(display_element,trial) {
-
-            const wrap = document.createElement('div')
-            wrap.className = 'option_wrapper'
-            wrap.style.backgroundColor = '#f2f1f0'
-            wrap.id = 'g_option_wrapper'
-
-            const help_txt = document.createElement('div')
-            help_txt.className = 'g_helper_text'
-            help_txt.id = 'g_helper_text'
-            const hleft = document.createElement('h1')
-            const hright = document.createElement('h1')
-            hleft.style.position = 'absolute'
-            hright.style.position = 'absolute'
-            hleft.textContent = 'Press F'
-            hleft.style.left = '11%'
-            hright.textContent = 'Press J'
-            hright.style.right = '11%'
-            help_txt.appendChild(hleft)
-            help_txt.appendChild(hright)
-
-            const opt_gam_f_t = document.createElement('div')
-            const opt_gam_f_c = document.createElement('div')
-            const opt_gam_f_b = document.createElement('div')
-            const opt_gam_j_t = document.createElement('div')
-            const opt_gam_j_c = document.createElement('div')
-            const opt_gam_j_b = document.createElement('div')
-            const opt_gam_sel_f = document.createElement('div')
-            const opt_gam_sel_j = document.createElement('div')
+        drawGamOptions() {
+            const optionLeft = document.getElementById('optionLeft')
+            const optionRight = document.getElementById('optionRight')
 
 
-            opt_gam_f_t.className = 'gam_opt'
-            opt_gam_f_t.id = 'gopt_ft'
-            opt_gam_f_t.style.top = '7%'
+            const optGam1 = document.createElement('div')
+            const optGam2 = document.createElement('div')
+            const optFixed = document.createElement('div')
 
-            opt_gam_f_c.className = 'gam_opt'
-            opt_gam_f_c.id = 'gopt_fc'
-            opt_gam_f_c.style.top = '30%'
+            optGam1.className = 'gamOpt'
+            optGam1.innerHTML = `<p>${this.data.contingency.opt.gam_1}</p>`
+            optGam2.className = 'gamOpt'
+            optGam2.innerHTML = `<p>${this.data.contingency.opt.gam_2}</p>`
+            optFixed.className = 'gamOpt'
+            optFixed.innerHTML = `<p>${this.data.contingency.opt.fixed}</p>`
 
-            opt_gam_f_b.className = 'gam_opt'
-            opt_gam_f_b.id = 'gopt_fb'
-            opt_gam_f_b.style.bottom = '7%'
-
-            opt_gam_j_t.className = 'gam_opt'
-            opt_gam_j_t.id = 'gopt_jt'
-            opt_gam_j_t.style.top = '7%'
-
-            opt_gam_j_c.className = 'gam_opt'
-            opt_gam_j_c.id = 'gopt_jc'
-            opt_gam_j_c.style.top = '30%'
-
-            opt_gam_j_b.className = 'gam_opt'
-            opt_gam_j_b.id = 'gopt_jb'
-            opt_gam_j_b.style.bottom = '7%'
-
-
-            opt_gam_sel_f.className = 'g_gam_sel'
-            opt_gam_sel_f.id = 'gam_sel_f'
-            opt_gam_sel_f.style.left = '10%'
-
-            opt_gam_sel_j.className = 'g_gam_sel'
-            opt_gam_sel_j.id = 'gam_sel_j'
-            opt_gam_sel_j.style.right = '10%'
-
-
-            opt_gam_sel_f.appendChild(opt_gam_f_c)
-            opt_gam_sel_f.appendChild(opt_gam_f_b)
-            opt_gam_sel_f.appendChild(opt_gam_f_t)
-
-            opt_gam_sel_j.appendChild(opt_gam_j_c)
-            opt_gam_sel_j.appendChild(opt_gam_j_b)
-            opt_gam_sel_j.appendChild(opt_gam_j_t)
-
-            const veil = document.createElement('div')
-            veil.className = 'veil'
-            veil.id = 'veil'
-            veil.style.display = 'flex'
-            const cross = document.createElement('h1')
-            cross.id = 'cross'
-            cross.className = 'cross'
-            cross.textContent = ''
-
-            const view = document.createElement('div')
-            view.id = 'view'
-            view.className = 'option_wrapper'
-            view.appendChild(cross)
-            veil.appendChild(view)
-
-            wrap.appendChild(help_txt)
-            wrap.appendChild(opt_gam_sel_f)
-            wrap.appendChild(opt_gam_sel_j)
-
-            display_element.append(wrap)
-            display_element.append(veil)
-
-            if (trial.whichSide === 'left') {
-                document.getElementById('gopt_jc').style.opacity = '100%'
-                document.getElementById('gopt_ft').style.opacity = '100%'
-                document.getElementById('gopt_fb').style.opacity = '100%'
-                document.getElementById('gopt_jc').textContent = trial.opt.fixed
-                document.getElementById('gopt_ft').textContent = trial.opt.gam_1
-                document.getElementById('gopt_fb').textContent = trial.opt.gam_2
-
-                document.getElementById('gopt_jt').style.opacity = '0%'
-                document.getElementById('gopt_jb').style.opacity = '0%'
-                document.getElementById('gopt_fc').style.opacity = '0%'
+            if (this.data.contingency.whichSide === 'left') {
+                optionLeft.appendChild(optGam1)
+                optionLeft.appendChild(optGam2)
+                optionRight.appendChild(optFixed)
+                optionRight.style.justifyContent = 'center'
             } else {
-                document.getElementById('gopt_jc').style.opacity = '0%'
-                document.getElementById('gopt_ft').style.opacity = '0%'
-                document.getElementById('gopt_fb').style.opacity = '0%'
-
-
-                document.getElementById('gopt_fc').style.opacity = '100%'
-                document.getElementById('gopt_jt').style.opacity = '100%'
-                document.getElementById('gopt_jb').style.opacity = '100%'
-                document.getElementById('gopt_fc').textContent = trial.opt.fixed
-                document.getElementById('gopt_jt').textContent = trial.opt.gam_1
-                document.getElementById('gopt_jb').textContent = trial.opt.gam_2
+                optionRight.appendChild(optGam1)
+                optionRight.appendChild(optGam2)
+                optionLeft.appendChild(optFixed)
+                optionLeft.style.justifyContent = 'center'
             }
+            return resolveAfter(this.timing.init,'',this.jsPsych,'',this.jsPsych)
 
 
-            const glassAni = [{backdropFilter: 'blur(30px)', webkitBackdropFilter: 'blur(30px)'},
-                {backdropFilter: 'blur(0px)', webkitBackdropFilter: 'blur(0px)'}]
-
-            return veil.animate([
-                    {opacity: '100%'},
-                    {opacity: '0%'},
-                ],
-                {duration: this.timing.fade, iterations: 1, delay: this.timing.intro, fill: 'forwards'}).finished
         }
 
-        gamKeypress(e,trial) {
-
+        gamKeypress(e) {
             this.jsPsych.pluginAPI.cancelAllKeyboardResponses()
             this.jsPsych.pluginAPI.clearAllTimeouts()
-            let resp = {
-                key: '',
-                keyPressed: '',
-                switch: trial.switch,
-                rt: '',
-                opt: trial.opt,
-                type: '',
-                fb: '',
-                pt: '',
-                showRank: trial.showRank,
-                iti: trial.iti,
-                initTime: trial.initTime,
-            }
+            photonSwitch('gam-resp')
+            this.data.keyPressOnset = performance.now()
+            // too many keys to change, use remap:
             // set up feedback background & box
-            const fb_box = document.createElement('div')
-            fb_box.id = 'fb_box'
-            fb_box.className = 'g_fb_box'
-            // set up feedback text
-            const fb_textKey = document.createElement('h1')
-            const fb_textSup = document.createElement('p')
-            fb_textKey.className = 'g_fb_box'
-            fb_textSup.className = 'g_fb_box'
-            fb_box.appendChild(fb_textKey)
-            fb_box.appendChild(fb_textSup)
-            document.getElementById('view').appendChild(fb_box)
-            if (e) {
+            let promiseToGo;
+            let cfChoice, cfPoints, noResp, cSn, otherSide
+
+            if (e !== '') {
+                noResp = false
                 // if there is a response:
-                resp.key = e.key
-                resp.keyPressed = e.key
-                resp.rt = e.rt
-                // draw selection box:
-                let sel_box = document.getElementById(`gam_sel_${resp.key}`).cloneNode(false)
-                sel_box.id = 'temp_remove'
-                document.getElementById('g_option_wrapper').appendChild(sel_box)
-                // set selection animation:
-                let sel_ani_opt = {
-                    duration: 2000,
-                    iterations: 1,
-                    fill: 'forwards'
+
+                this.data.key = this.keyMap.getAction(e.key.toLowerCase())
+                this.data.rt = e.rt
+                if (this.data.key === 'left') {
+                    this.data.side = 'Left'
+                    otherSide = 'Right';
+                } else if (this.data.key === 'right') {
+                    this.data.side = 'Right'
+                    otherSide = 'Left';
                 }
-                let sel_ani;
-                if (trial.switch === false) {
-                    sel_ani = [
+                // draw selection box:
+                const optionSel = document.getElementById(`option${this.data.side}`)
+                const oppSel = document.getElementById(`option${otherSide}`)
+                const selBox = document.createElement('div')
+                selBox.className = 'selBox'
+                selBox.id = 'temp_remove'
+                selBox.style.height = optionSel.scrollHeight+'px'
+                selBox.style.width  = optionSel.scrollWidth+'px'
+                selBox.style.position = 'absolute'
+                selBox.style.left = optionSel.offsetLeft+'px'
+                selBox.style.top = optionSel.offsetTop+'px'
+                document.getElementById('gambleWrap').appendChild(selBox)
+                // set selection animation:
+                let selAni;
+                if (this.data.contingency.switch === false) {
+                    selAni = [
                         {borderColor: '#dbcab6'},
                         {borderColor: '#dbcab6',offset: 0.8},
                         {borderColor: '#d6954b'},
                     ];
-                    sel_ani_opt.duration = 1000
-                } else if (resp.key==='j') {
-                    sel_ani = [
-                        {borderColor: '#dbcab6', right: '10%',},
-                        {borderColor: '#dbcab6', right: '10%',offset: 0.6},
-                        {borderColor: '#dbcab6', right: '63.5%',offset: 0.90},
-                        {borderColor: '#d6954b', right: '63.5%'},
-                    ]
-                    resp.key = 'f'
-                } else if (resp.key==='f') {
-                    sel_ani = [
-                        {borderColor: '#dbcab6', left: '10%'},
-                        {borderColor: '#dbcab6', left: '10%',offset: 0.6},
-                        {borderColor: '#dbcab6', left: '63.5%',offset: 0.90},
-                        {borderColor: '#d6954b', left: '63.5%'},
-                    ]
-                    resp.key = 'j'
-                }
-                // figure out what feedback to give based on contingency and key press
-                let opt_str
-                if (trial.whichSide === 'left' && resp.key === 'f' || trial.whichSide === 'right' && resp.key === 'j') {
-                    // gamble side is pressed:
-                    resp.type = 'gamble'
-                    if (trial.win === true) {
-                        opt_str = (trial.opt.gam_1 > trial.opt.gam_2) ? 'gam_1':'gam_2';
-                        fb_box.style.backgroundColor = '#acdb86'
-                        fb_textKey.textContent = `Won!`
-                        resp.fb = 'won'
-                    } else {
-                        opt_str = (trial.opt.gam_1 < trial.opt.gam_2) ? 'gam_1':'gam_2';
-                        fb_box.style.backgroundColor = '#db9a86'
-                        fb_textKey.textContent = `Lost!`
-                        resp.fb = 'lost'
-                    }
 
                 } else {
-                    resp.type = 'fixed'
-                    // safe side is pressed
-                    opt_str = 'fixed'
-                    fb_box.style.backgroundColor = '#ded8ca'
-                    fb_textKey.textContent = `Safe Option`
+                    selAni = [
+                        {borderColor: '#dbcab6', left: optionSel.offsetLeft+'px'},
+                        {borderColor: '#dbcab6', left: optionSel.offsetLeft+'px',offset: 0.6},
+                        {borderColor: '#dbcab6', left: oppSel.offsetLeft+'px',offset: 0.90},
+                        {borderColor: '#d6954b', left: oppSel.offsetLeft+'px'},
+                    ]
+                    this.data.side = otherSide;
                 }
-                resp.pt = trial.opt[opt_str]
-                fb_textSup.innerHTML = `<strong>${(trial.opt[opt_str] < 0) ? '-' : '+'} ${Math.abs(trial.opt[opt_str])}</strong> points`
-
-                // animate the background + feedback box
-                sel_box.animate(sel_ani,sel_ani_opt).finished.then((x) => {
-
-                    document.getElementById('veil').animate(
-                        [
-                            {opacity: '0%'},
-                            {opacity: '100%'},
-                        ],
-                        {duration:this.timing.fade,iterations: 1,delay:this.timing.selDur,fill: 'forwards'}
-                    )
-                    fb_box.animate(
-                        [{opacity: '0%'},{opacity: '100%'}],
-                        {duration:this.timing.fade,iterations: 1,delay:this.timing.selDur,fill: 'forwards'}
-                    ).finished.then((x) => {
-                        this.jsPsych.pluginAPI.setTimeout(() => {
-                            resp.fbOnset = performance.now()
-                            this.EndTrial(resp,trial)
-                        }, this.timing.fbDur);
-                    })
-
-                })
+                // figure out what feedback to give based on contingency and key press
+                let optStr
+                if (this.data.contingency.whichSide === this.data.side.toLowerCase()) {
+                    // gamble side is pressed:
+                    this.data.respType = 'gamble'
+                    if (this.data.contingency.win === true) {
+                        optStr = (this.data.contingency.opt.gam_1 > this.data.contingency.opt.gam_2) ? 'gam_1':'gam_2';
+                        this.data.fb = 'won'
+                        cSn = 0
+                    } else {
+                        optStr = (this.data.contingency.opt.gam_1 < this.data.contingency.opt.gam_2) ? 'gam_1':'gam_2';
+                        this.data.fb = 'lost'
+                        cSn = 1
+                    }
+                    cfChoice = 'safe'
+                    cfPoints = this.data.contingency.opt.fixed
+                } else {
+                    this.data.respType = 'safe'
+                    this.data.fb = 'safe'
+                    // safe side is pressed
+                    optStr = 'fixed'
+                    cSn = 2
+                    cfChoice = 'gamble'
+                    if (this.data.contingency.win === true) {
+                        cfPoints = (this.data.contingency.opt.gam_1 > this.data.contingency.opt.gam_2) ? this.data.contingency.opt.gam_1:this.data.contingency.opt.gam_2;
+                    } else {
+                        cfPoints = (this.data.contingency.opt.gam_1 < this.data.contingency.opt.gam_2) ? this.data.contingency.opt.gam_1:this.data.contingency.opt.gam_2;
+                    }
+                }
+                this.data.pts = this.data.contingency.opt[optStr]
+                promiseToGo = selBox.animate(selAni,{
+                    duration: this.timing.selDur,
+                    iterations: 1,
+                    fill: 'forwards'
+                }).finished
             } else {
                 // no response
-                resp.key = 'na'
-                resp.keySelect = 'na'
-                resp.type = 'no-resp'
-                fb_box.style.backgroundColor = '#d1d1d1'
-                fb_textKey.textContent = 'No Response'
+                noResp = true
+                this.data.respType = 'noresp'
+                //this.data.pts = Math.min(...Object.values(this.data.contingency.opt))
+                this.data.pts = -10
+                cSn = 3
 
-                document.getElementById('veil').animate(
-                    [
-                        {opacity: '0%'},
-                        {opacity: '100%'},
-                    ],
-                    {duration:this.timing.fade,iterations: 1,delay:0,fill: 'forwards'}
-                )
-                fb_box.animate(
-                    [{opacity: '0%'},{opacity: '100%'}],
-                    {duration:this.timing.fade,iterations: 1,delay:0,fill: 'forwards'}
-                ).finished.then((x) => {
-                    this.jsPsych.pluginAPI.setTimeout(() => {
-                        resp.fbOnset = performance.now()
-                        this.EndTrial(resp,trial)
-                    }, this.timing.fbDur);
+                document.getElementById('optionBox').remove()
+
+                promiseToGo = new Promise((resolve) => {
+                    this.jsPsych.pluginAPI.setTimeout( () => {
+                        resolve(true)
+                    }, this.timing.selDur)
                 })
+                if (this.data.contingency.win === true) {
+                    cfChoice = 'gamble'
+                    cfPoints = (this.data.contingency.opt.gam_1 > this.data.contingency.opt.gam_2) ? this.data.contingency.opt.gam_1:this.data.contingency.opt.gam_2;
+                } else {
+                    cfChoice = 'safe'
+                    cfPoints = this.data.contingency.opt.fixed
+                }
+
             }
+
+            //set cSn to undefined for score based feedback
+            // cSn = undefined
+
+            const fbBox = standardFeedback(this.data.respType,this.data.pts,
+                cfChoice,cfPoints,noResp,cSn,'',false,this.oldFb)
+            fbBox.id = 'fbBox'
+            document.getElementById('veil').appendChild(fbBox)
+
+            promiseToGo.then(() => {
+                document.getElementById('veil').style.display = 'flex'
+                document.getElementById('veil').style.opacity = '100%'
+                const promVeil = resolveAfter(this.timing.preFb,'',this.jsPsych)
+                promVeil.then(() => {
+                    fbBox.style.opacity = '100%'
+                    photonSwitch('gam-fbOn')
+                    this.data.fbOnsetTime = performance.now()
+                    const promFb = resolveAfter(this.timing.fbDur,'',this.jsPsych)
+                    promFb.then(this.EndTrial)
+                })
+
+            })
+
 
         }
 
-        EndTrial(dt,trial) {
-
-            if (dt.key !== 'na') {
+        EndTrial() {
+            if (this.data.key !== '') {
                 document.getElementById('temp_remove').remove()
             }
             let fixcross = document.getElementById('fixcross')
@@ -500,19 +462,16 @@ jsPsychGamble = (function(jspsych) {
                 fixcross.style.fontSize = '5vw'
             }
 
-            document.getElementById('fb_box').animate(
-                [
-                    {opacity: '100%'},
-                    {opacity: '0%'},
-                ],
-                {duration:this.timing.fade,iterations: 1,delay:0,fill: 'forwards'}
-            ).finished.then(()=>{
-                trial.jsPsych.pluginAPI.setTimeout(() => {
-                    trial.jsPsych.pluginAPI.cancelAllKeyboardResponses()
-                    trial.jsPsych.pluginAPI.clearAllTimeouts()
-                    trial.jsPsych.finishTrial(dt)
-                }, trial.iti);
-            })
+
+
+            this.data.endTime = performance.now()
+            this.data.duration = this.data.endTime - this.data.initTime
+
+            this.jsPsych.pluginAPI.cancelAllKeyboardResponses()
+            this.jsPsych.pluginAPI.clearAllTimeouts()
+            this.jsPsych.finishTrial(this.data)
+
+
 
         }
 
@@ -567,7 +526,6 @@ function gen_trial_contin(t, win_p, ct_type, yoke_por,
             sub_arKeys = [sv];
         }
 
-        let lsSVs = [];
 
         for (let iSV of sub_arKeys) {
             for (let iRV of ar_dict[String(iSV)]) {
@@ -577,9 +535,8 @@ function gen_trial_contin(t, win_p, ct_type, yoke_por,
             }
         }
     }
-    console.log(ar_dict)
     for (ix in t_i) {
-        let alC = sample(allComb)
+            let alC = sample(allComb)
         let rx = alC.rx;
         let sv = Math.round(alC.sv)
         let ev = alC.ev
@@ -619,8 +576,7 @@ function contingWrapGam(numTrial,winP,ChoiceTypes, YokePorp, EmoInt) {
             p_c.push([ChoiceTypes[ctx],winP[wpx]])
         }
     }
-    t = Math.round(numTrial / p_c.length)
-    let all_info = [];
+    let t = Math.round(numTrial / p_c.length)
     let all_timeline = [];
     for (let az in p_c) {
         const [winX, maxP] = frac_hack(p_c[az][1])

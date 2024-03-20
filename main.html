@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <title>Main Study Page</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto Condensed">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Oswald">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Rubik">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Bebas Neue">
     <script src="js/jsPsych/jspsych.js"></script>
     <script src="js/jsPsych/plugin-preload.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.2.6/firebase-app.js"></script>
@@ -29,7 +32,7 @@
 </head>
 <style></style>
 <body>
-<div id="wrap" class="wrapLong">
+<div id="wrap" class="wrapLong" style="display: none">
     <div id="msgBox" class="msgBox"></div>
     <div id="optionRow" class="optionRow" style="justify-content: space-around;">
         <button id = 'startButton'>Start</button>
@@ -38,39 +41,158 @@
 <div id='display_element' class='jsPsychDE' style="display: none"></div>
 </body>
 <script>
-    const functionRow = construct_function_row()
     const urlPara = new URLSearchParams(window.location.search)
-    let tlType = urlPara.get('tlType')
+    let PROLIFIC_PID = urlPara.get('PROLIFIC_PID')
+    let tlType;
+    let collectionName = urlPara.get('collectionName')
+    let uploadSuccessfully = false;
+    console.log(PROLIFIC_PID)
     let sessNum = parseInt( urlPara.get('sessNum') )
+    let complicated = urlPara.get('complicated')
+
     if (!sessNum) {
         sessNum = 1;
     }
     if (!tlType) {
-        tlType = 'Condensed'
+        tlType = 'behave'
     }
-    functionRow.style.position = 'absolute'
-    functionRow.style.bottom = '-8vmin'
-    functionRow.childNodes[3].setAttribute('iH',`The session start page is evoked at the beginning
-    and when the participants finished a session and ready for the next. Using the skip button here
-    will instead skip ahead to the next session. To view the content of the session, hover over the start button.`)
-    functionRow.childNodes[3].style.animation = '1s ease-in-out infinite hasInfo'
-    document.getElementById('wrap').appendChild(functionRow)
+    if (!collectionName) {
+        collectionName = 'p2'
+    }
+    if (!complicated) {
+        complicated = false
+    } else {
+        complicated = complicated==='true'
+    }
+
+    console.log('here',complicated)
 
 
-    document.getElementById('timer').setAttribute('sTimerMin','120')
-    document.getElementById('timer').setAttribute('sTimerSec','0')
-    document.getElementById('timer').setAttribute('initTime',performance.now())
-    document.getElementById('timer').setAttribute('curTime',performance.now())
-    updateTimer()
+    if (!PROLIFIC_PID) {
+        document.getElementById('display_element').innerHTML = `
+                        <div id='msgFIN' class="msgBox" style="margin: auto;display: flex; flex-direction: column; justify-content: space-around; align-items: center">
+                            <h1>No Prolific PID detected</h1>
+                            <h2>Please only join via provided Prolific link.</h2>
+                        </div>
+                        `
+    } else {
+        document.getElementById('display_element').innerHTML = `
+                        <div id='msgFIN' class="msgBox" style="margin: auto;display: flex; flex-direction: column; justify-content: space-around; align-items: center">
+                            <h1>Please wait...</h1>
+                            <h2>Experiment is loading... </h2>
+                            <h2>If this screen is taking longer than 5 minutes, please contact the experimenter. </h2>
+                        </div>
+                        `
+    }
 
     getMazeConfig().then((MazeInfo)=> {
-        setUpSession(tlType,sessNum,MazeInfo)
-        resetSkipButton()
-        document.getElementById('skipButton').addEventListener('click', () => {
-            sessNum += 1
+        if (tlType === 'behave') {
+            document.getElementById('display_element').style.display = 'flex'
+            let jsPsych = initJsPsych({
+                override_safe_mode: true,
+                display_element: 'display_element',
+                MazeInfo: MazeInfo,
+                on_finish: (dt) => {
+
+
+                    let gdt = {};
+                    for (let i=0; i<dt.trials.length; i++) {
+                        gdt[String(i)] = dt.trials[i]
+                    }
+                    document.getElementById('display_element').innerHTML = `
+                        <div id='msgFIN' class="msgBox" style="margin: auto;display: flex; flex-direction: column; justify-content: space-around; align-items: center">
+                            <h1>All done! Thank you for your participation!</h1>
+                            <h2>Please wait and DO NOT CLOSE the browser window, your data is uploading... </h2>
+                        </div>
+                    `
+                    const fdt = {trial: gdt, trialsCompleted:performance.now()}
+                    const status = db.collection(collectionName).doc(PROLIFIC_PID).update(fdt)
+                    status.then(() => {
+                        uploadSuccessfully = true
+                        document.getElementById('display_element').innerHTML = `
+                        <div id='msgFIN' class="msgBox" style="margin: auto;display: flex; flex-direction: column; justify-content: space-around; align-items: center">
+                            <h1>Upload Completed</h1>
+                            <h2>Please wait for your Prolific return code to be retrieved, and you will be redirected back to prolific. </h2>
+                        </div>
+                        `
+                        db.collection('ProlificCode').doc('Code').get().then((code)=>{
+                            let prolificReturnCode = code.data()[collectionName]
+                            console.log(prolificReturnCode)
+                            if (prolificReturnCode) {
+                                setTimeout(function () {
+                                    location.href = `https://app.prolific.com/submissions/complete?cc=${prolificReturnCode}`
+                                },2000)
+                            } else {
+                                document.getElementById('display_element').innerHTML = `
+                                    <div id='msgFIN' class="msgBox" style="margin: auto;display: flex; flex-direction: column; justify-content: space-around; align-items: center">
+                                        <h1>Unable to retrieve code.</h1>
+                                        <h2>Please complete with NO CODE and message the experimenter. </h2>
+                                    </div>
+                                `
+                            }
+
+                        })
+
+
+                    })
+
+                },
+                on_close: () => {
+                    if (!uploadSuccessfully) {
+                        const dt = jsPsych.data.get();
+                        let gdt = {};
+                        for (let i=0; i<dt.trials.length; i++) {
+                            gdt[String(i)] = dt.trials[i]
+                        }
+                        const fdt = {trial: gdt,trialsClosed:performance.now()}
+                        db.collection(collectionName).doc(PROLIFIC_PID).update(fdt)
+                    }
+
+                }
+            });
+
+            let taskProcedure
+            if (complicated) {
+                taskProcedure = fixedContingencyComplicated(MazeInfo);
+            } else {
+                taskProcedure = fixedContingency(MazeInfo);
+            }
+
+
+            const dbCon = db.collection(collectionName).doc(PROLIFIC_PID).get()
+
+            dbCon.then((existDt)=> {
+                console.log(existDt.data())
+                if(!existDt.data()['trial'] || collectionName==='TestBed') {
+                    jsPsych.pluginAPI.clearAllTimeouts()
+                    jsPsych.pluginAPI.cancelAllKeyboardResponses()
+                    jsPsych.run(taskProcedure)
+                } else {
+                    document.getElementById('display_element').innerHTML = `
+                        <div id='msgFIN' class="msgBox" style="margin: auto;display: flex; flex-direction: column; justify-content: space-around; align-items: center">
+                            <h1> Data linked to your Prolific PID already exist.</h1>
+                            <h2> You cannot participate more than once.</h2>
+                            <p> If you believe this is due to an error, please contact
+                            the experimenter via <a href="mailto:jiazhou.chen.20@ucl.ac.uk">EMAIL</a> or Prolific message.
+                            </p>
+                        </div>
+                        `
+                }
+
+            })
+
+        } else {
             setUpSession(tlType,sessNum,MazeInfo)
-        })
+            resetSkipButton()
+            document.getElementById('skipButton').addEventListener('click', () => {
+                sessNum += 1
+                setUpSession(tlType,sessNum,MazeInfo)
+            })
+        }
+
     })
+
+
 
 
 
@@ -118,7 +240,7 @@
             let [jsPsychXC, taskProcedure] = getTimeline(tl,num,MazeInfo)
             jsPsychXC.pluginAPI.clearAllTimeouts()
             jsPsychXC.pluginAPI.cancelAllKeyboardResponses()
-            document.getElementById('display_element').style.display = 'inline'
+            document.getElementById('display_element').style.display = 'flex'
             console.log(taskProcedure)
             jsPsychXC.run(taskProcedure)
         })
